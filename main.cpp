@@ -10,9 +10,9 @@ int Max_number (T Height, T Width, int step){
     return (Height*Width/step)/step;
 }
 int main() {
-    unsigned Height = 8;
-    unsigned Width = 8;
-    unsigned number_of_points = 16;
+    unsigned Height = 1024;
+    unsigned Width = 1920;
+    unsigned number_of_points = Max_number(Height, Width, 2);
 
     //Cells::max_density = 2; // г/см3
     //Map::max_density = 2;

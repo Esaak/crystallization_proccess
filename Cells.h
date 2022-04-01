@@ -99,6 +99,12 @@ public:
     double Get_dis_prob() const {
         return this->dis_prob;
     }
+    double Get_crys_rate() const{
+        return crys_rate;
+    }
+    double Get_dis_rate() const{
+        return dis_rate;
+    }
 
 
 

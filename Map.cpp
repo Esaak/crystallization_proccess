@@ -40,7 +40,7 @@ Map &Map::operator=(const Map &map) {
 void Map::Set_cell_origin() {
     unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
     std::default_random_engine e(seed);
-    tot_solution = 0.0;
+    //tot_solution = 0.0;
     std::random_device rd;
     std::mt19937 gen(seed);
     std::uniform_real_distribution<double> distrib(0, 1);
@@ -125,7 +125,7 @@ void Map::Differential_equation_iteration2() {
         Set_cell_next_step_solution(i, total_solution);
     }
 }
-
+/*
 void Map::Crystallization_dissolution_check() {
     unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
     std::default_random_engine e(seed);
@@ -137,6 +137,7 @@ void Map::Crystallization_dissolution_check() {
     for (int i = 0; i < number_of_Cells; i++) {
         cell[i].Set_crys_rate_prob();
         cell[i].Set_dis_rate_prob();
+        Is_cells_cristallization(i);
         double prob = distrib(gen);
         if (prob <= dis_prob) state = false;
         if (prob > dis_prob && prob <= dis_prob + crys_prob) {
@@ -150,8 +151,128 @@ void Map::Crystallization_dissolution_check() {
 
         }
     }
-};
-
+};*/
+void Map:: Set_cells_dis_rate_prob(){
+    for(auto & it: cell){
+        it.Set_dis_rate_prob();
+    }
+}
+void Map::Set_cells_crys_rate_prob() {
+    for(auto &it: cell){
+        it.Set_crys_rate_prob();
+    }
+}
+void Map:: Is_cells_cristallization(){
+    unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
+    std:: default_random_engine e(seed);
+    for(std::size_t i=0; i<number_of_Cells; i++){
+        std::uniform_real_distribution<double> distrib(0, Get_cell_i(i).Get_crys_rate()+Get_cell_i(i).Get_dis_rate());
+        distrib(e)>dis_rate ? Get_cell_i(i).Set_state(true)  : Get_cell_i(i).Set_state(false);
+    }
+}
 void Map::Crystallization_process() {
+    Differential_equation_iteration2();
+    Set_cells_crys_rate_prob();
+    Set_cells_dis_rate_prob();
+    Is_cells_cristallization();
+    for(int i=0; i<Height; i+=2){
+        for(int j=0; j<Width; j+=2){
+            if(cell[j/2 + Width/2* i/2].Get_state()){
+                double delta =max_density -  cell[i/2 + Width/2* j/2].Get_solution();
+                double temp_summ=0;
+                int r=1;
+                std::vector<Cells*>answ;
+                while(delta>0){
+                    temp_summ=0;
+                    for(int iter =0; iter<r; iter++){
+                        int i1 = (i/2 - r + iter)*static_cast<int>(Width) /2;
+                        int j1 = j/2 + iter;
+                        if(j1<0 || i1<0) continue;
+                        if(!cell[i1+j1].Get_state()) {
+                            temp_summ += cell[i1 + j1].Get_solution();
+                            answ.push_back(&cell[i1 + j1]);
+                        }
+                    }
+                    for(int iter =0; iter<r; iter++){
+                        int i1 = (i/2  + iter)*static_cast<int>(Width) /2;
+                        int j1 = j/2 + r - iter;
+                        if(j1<0 || i1<0) continue;
+                        if(!cell[i1+j1].Get_state()) {
+                            temp_summ += cell[i1 + j1].Get_solution();
+                            answ.push_back(&cell[i1 + j1]);
+                        }
+                    }
+                    for(int iter =0; iter<r; iter++){
+                        int i1 = (i/2 + r - iter)*static_cast<int>(Width) /2;
+                        int j1 = j/2 - iter;
+                        if(j1<0 || i1<0) continue;
+                        if(!cell[i1+j1].Get_state()) {
+                            temp_summ += cell[i1 + j1].Get_solution();
+                            answ.push_back(&cell[i1 + j1]);
+                        }
+                    }
+                    for(int iter =0; iter<r; iter++){
+                        int i1 = (i/2 - iter)*static_cast<int>(Width) /2;
+                        int j1 = j/2 - r + iter;
+                        if(j1<0 || i1<0) continue;
+                        if(!cell[i1+j1].Get_state()) {
+                            temp_summ += cell[i1 + j1].Get_solution();
+                            answ.push_back(&cell[i1 + j1]);
+                        }
+                    }
+                    for(int i1 =Width/2* i/2 -r*Width/2;i1< Width/2* i/2 -Width/2; i1+=Width/2){
+                        for(int j1 = j/2; i1+j1-i/2 - j/2==r; j1++){
+                            if(j1<0 || i1<0) continue;
+                            if(!cell[i1+j1].Get_state()) {
+                                temp_summ += cell[i1 + j1].Get_solution();
+                                answ.push_back(&cell[i1 + j1]);
+                            }
+                        }
+                    }
+                    for(int i1 = Width/2 * i/2; i1<Width/2 * (i/2+r); i1+=Width/2){
+                        for(int j1 = j/2+r; i1+j1-i/2 - j/2==r; j1--){
+                            if(j1<0 || i1<0) continue;
+                            if(!cell[i1+j1].Get_state()) {
+                                temp_summ += cell[i1 + j1].Get_solution();
+                                answ.push_back(&cell[i1 + j1]);
+                            }
+                        }
+                    }
+                    for(int i1= Width/2 + r*Width/2; i1>Width/2 * i/2; i1-=Width/2){
+                        for(int j1 = j/2; i1+j1-i/2-j/2==r; j1--){
+                            if(j1<0 || i1<0) continue;
+                            if(!cell[i1+j1].Get_state()) {
+                                temp_summ += cell[i1 + j1].Get_solution();
+                                answ.push_back(&cell[i1+j1]);
+                            }
+                        }
+                    }
+                    for(int i1= Width/2 * i/2; i1>Width/2* i/2-Width/2*r; i1-=Width/2){
+                        for(int j1 = j/2 -r;j1+i1-i/2-j/2==r; j1++){
+                            if(j1<0 || i1<0) continue;
+                            if(!cell[i1+j1].Get_state()){
+                                temp_summ+=cell[i1+j1].Get_solution();
+                                answ.push_back(&cell[i1+j1]);
+                            }
+                        }
+                    }
+                    if(temp_summ>=delta){
+                        for(auto& it: answ){
+                            it->Set_solution(it->Get_solution()-it->Get_solution()*delta/temp_summ);
+                        }
+                        delta=0;
+                        continue;
+                    }
+                    if(temp_summ<delta){
+                        for(auto& it:answ){
+                            it->Set_solution(0);
+                        }
+                        delta-=temp_summ;
+                    }
+                    r++;
+                }
+            }
+        }
+    }
 
 }

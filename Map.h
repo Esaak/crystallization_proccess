@@ -112,6 +112,9 @@ public:
     void Differential_equation_iteration2();
     void Crystallization_dissolution_check();
     void Crystallization_process();
+    void Is_cells_cristallization();
+    void Set_cells_dis_rate_prob();
+    void Set_cells_crys_rate_prob();
 };
 
 

@@ -24,8 +24,7 @@ void Map_Draw::Display() {
 
         window.clear();
 
-        map.Differential_equation_iteration2();
-        map.Crystallization_dissolution_check();
+        map.Crystallization_process();
         //draw moving particles
         for (std::size_t i = 0; i < map.Get_number_of_Cells(); i++) {
             Cells_Draw circle(map.Get_cell_i(i));
