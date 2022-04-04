@@ -115,6 +115,7 @@ public:
     void Is_cells_cristallization();
     void Set_cells_dis_rate_prob();
     void Set_cells_crys_rate_prob();
+    void Set_cells_dis_crys_rate_prob();
 };
 
 

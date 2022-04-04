@@ -162,117 +162,138 @@ void Map::Set_cells_crys_rate_prob() {
         it.Set_crys_rate_prob();
     }
 }
+void Map::Set_cells_dis_crys_rate_prob() {
+    for(auto &it:cell) {
+        it.Set_crys_rate_prob();
+        it.Set_dis_rate_prob();
+    }
+}
 void Map:: Is_cells_cristallization(){
     unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
     std:: default_random_engine e(seed);
     for(std::size_t i=0; i<number_of_Cells; i++){
         std::uniform_real_distribution<double> distrib(0, Get_cell_i(i).Get_crys_rate()+Get_cell_i(i).Get_dis_rate());
-        distrib(e)>dis_rate ? Get_cell_i(i).Set_state(true)  : Get_cell_i(i).Set_state(false);
+        distrib(e)>Get_cell_i(i).Get_dis_rate() ? Get_cell_i(i).Set_state(true)  : Get_cell_i(i).Set_state(false);
     }
 }
 void Map::Crystallization_process() {
+    //std::cout<<"\n"<<2<<"\n";
     Differential_equation_iteration2();
-    Set_cells_crys_rate_prob();
-    Set_cells_dis_rate_prob();
+    //Set_cells_crys_rate_prob();
+    //Set_cells_dis_rate_prob();
+    Set_cells_dis_crys_rate_prob();
     Is_cells_cristallization();
+    double simm=0;
     for(int i=0; i<Height; i+=2){
         for(int j=0; j<Width; j+=2){
-            if(cell[j/2 + Width/2* i/2].Get_state()){
-                double delta =max_density -  cell[i/2 + Width/2* j/2].Get_solution();
+            if(cell[j/2 + Width/2 * i/2].Get_state()){
+                double delta =max_density -  cell[ Width/2* i/2 +  j/2 ].Get_solution();
+                cell[i/2*Width/2+j/2].Set_solution(max_density);
                 double temp_summ=0;
                 int r=1;
                 std::vector<Cells*>answ;
-                while(delta>0){
+                unsigned qw = Height >Width ? Height :Width;
+                while(delta>0 && r<qw){
                     temp_summ=0;
                     for(int iter =0; iter<r; iter++){
-                        int i1 = (i/2 - r + iter)*static_cast<int>(Width) /2;
+                        int i1 = ( i/2 - r + iter )*static_cast<int>(Width) /2;
                         int j1 = j/2 + iter;
-                        if(j1<0 || i1<0) continue;
+                        if(j1<0 || i1<0 || j1>=(Width-1)/2 || i1>=(Width-1)/2*(Height-1)/2) continue;
                         if(!cell[i1+j1].Get_state()) {
                             temp_summ += cell[i1 + j1].Get_solution();
                             answ.push_back(&cell[i1 + j1]);
                         }
+
+                        int i2 = (i/2  + iter)*static_cast<int>(Width) /2;
+                        int j2 = j/2 + r - iter;
+                        if(j2<0 || i2<0 || j2>=(Width-1)/2 || i2>=(Width-1)/2*(Height-1)/2) continue;
+                        if(!cell[i2+j2].Get_state()) {
+                            temp_summ += cell[i2 + j2].Get_solution();
+                            answ.push_back(&cell[i2 + j2]);
+                        }
+
+                        int i3 = (i/2 + r - iter)*static_cast<int>(Width) /2;
+                        int j3 = j/2 - iter;
+                        if(j3<0 || i3<0 || j3>=(Width-1)/2 || i3>=(Width-1)/2*(Height-1)/2) continue;
+                        if(!cell[i3+j3].Get_state()) {
+                            temp_summ += cell[i3 + j3].Get_solution();
+                            answ.push_back(&cell[i3 + j3]);
+                        }
+
+                        int i4 = (i/2 - iter)*static_cast<int>(Width) /2;
+                        int j4 = j/2 - r + iter;
+                        if(j4<0 || i4<0 || j4>=(Width-1)/2 || i4>=(Height-1)/2*(Width-1)/2) continue;
+                        if(!cell[i4+j4].Get_state()) {
+                            temp_summ += cell[i4 + j4].Get_solution();
+                            answ.push_back(&cell[i4 + j4]);
+                        }
+
                     }
-                    for(int iter =0; iter<r; iter++){
+                    /*for(int iter =0; iter<r ; iter++){
                         int i1 = (i/2  + iter)*static_cast<int>(Width) /2;
                         int j1 = j/2 + r - iter;
-                        if(j1<0 || i1<0) continue;
+                        if(j1<0 || i1<0 || j1>=(Width-1)/2 || i1>=(Width-1)/2*(Height-1)/2) continue;
                         if(!cell[i1+j1].Get_state()) {
                             temp_summ += cell[i1 + j1].Get_solution();
                             answ.push_back(&cell[i1 + j1]);
                         }
-                    }
-                    for(int iter =0; iter<r; iter++){
+                    }*/
+                    /*for(int iter =0; iter<r && i<Height; iter++){
                         int i1 = (i/2 + r - iter)*static_cast<int>(Width) /2;
                         int j1 = j/2 - iter;
-                        if(j1<0 || i1<0) continue;
+                        if(j1<0 || i1<0 || j1>=(Width-1)/2 || i1>=(Width-1)/2*(Height-1)/2) continue;
                         if(!cell[i1+j1].Get_state()) {
                             temp_summ += cell[i1 + j1].Get_solution();
                             answ.push_back(&cell[i1 + j1]);
                         }
-                    }
-                    for(int iter =0; iter<r; iter++){
+                    }*/
+                    /*for(int iter =0; iter<r && j>0; iter++){
                         int i1 = (i/2 - iter)*static_cast<int>(Width) /2;
                         int j1 = j/2 - r + iter;
-                        if(j1<0 || i1<0) continue;
+                        if(j1<0 || i1<0 || j1>=(Width-1)/2 || i1>=(Height-1)/2*(Width-1)/2) continue;
                         if(!cell[i1+j1].Get_state()) {
                             temp_summ += cell[i1 + j1].Get_solution();
                             answ.push_back(&cell[i1 + j1]);
                         }
                     }
-                    for(int i1 =Width/2* i/2 -r*Width/2;i1< Width/2* i/2 -Width/2; i1+=Width/2){
-                        for(int j1 = j/2; i1+j1-i/2 - j/2==r; j1++){
-                            if(j1<0 || i1<0) continue;
-                            if(!cell[i1+j1].Get_state()) {
-                                temp_summ += cell[i1 + j1].Get_solution();
-                                answ.push_back(&cell[i1 + j1]);
-                            }
-                        }
-                    }
-                    for(int i1 = Width/2 * i/2; i1<Width/2 * (i/2+r); i1+=Width/2){
-                        for(int j1 = j/2+r; i1+j1-i/2 - j/2==r; j1--){
-                            if(j1<0 || i1<0) continue;
-                            if(!cell[i1+j1].Get_state()) {
-                                temp_summ += cell[i1 + j1].Get_solution();
-                                answ.push_back(&cell[i1 + j1]);
-                            }
-                        }
-                    }
-                    for(int i1= Width/2 + r*Width/2; i1>Width/2 * i/2; i1-=Width/2){
-                        for(int j1 = j/2; i1+j1-i/2-j/2==r; j1--){
-                            if(j1<0 || i1<0) continue;
-                            if(!cell[i1+j1].Get_state()) {
-                                temp_summ += cell[i1 + j1].Get_solution();
-                                answ.push_back(&cell[i1+j1]);
-                            }
-                        }
-                    }
-                    for(int i1= Width/2 * i/2; i1>Width/2* i/2-Width/2*r; i1-=Width/2){
-                        for(int j1 = j/2 -r;j1+i1-i/2-j/2==r; j1++){
-                            if(j1<0 || i1<0) continue;
-                            if(!cell[i1+j1].Get_state()){
-                                temp_summ+=cell[i1+j1].Get_solution();
-                                answ.push_back(&cell[i1+j1]);
-                            }
-                        }
-                    }
+                     */
                     if(temp_summ>=delta){
                         for(auto& it: answ){
                             it->Set_solution(it->Get_solution()-it->Get_solution()*delta/temp_summ);
+                            it->Set_impurity(it->Get_impurity()+it->Get_solution()*delta/temp_summ);
                         }
                         delta=0;
+                        answ.clear();
                         continue;
                     }
                     if(temp_summ<delta){
                         for(auto& it:answ){
                             it->Set_solution(0);
+                            it->Set_impurity(max_density);
                         }
                         delta-=temp_summ;
                     }
+                    answ.clear();
+
                     r++;
                 }
             }
+            /*if((Width-2)==j && (Height-2)==i){
+                std::cout<<"\n"<<"w1"<<"\n";
+            }*/
         }
+    }/*
+    std::cout<<"\n";
+    double summ=0;
+    for(int i=0; i<Height; i+=2){
+        for(int j=0; j<Width; j+=2) {
+            std::cout << cell[j / 2 + Width / 2 * i / 2].Get_solution() << " "
+                      << cell[j / 2 + Width / 2 * i / 2].Get_state() << '\t';
+            summ+=cell[j / 2 + Width / 2 * i / 2].Get_solution();
+        }
+        std::cout<<"\n";
     }
-
+    std::cout<<"\n";
+    std::cout<<summ;
+    std::cout<<"\n";*/
 }
