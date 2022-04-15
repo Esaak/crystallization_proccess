@@ -4,24 +4,38 @@
 
 #include "Map.h"
 #include <iomanip>
+/*########################################################################################*/
+/*#################################Constuctors and operators##############################*/
+/*########################################################################################*/
 //default constructor
 Map::Map() : Height(600), Width(800), number_of_Cells(1000) {
-    cell.resize(1000);
+    cell.resize(Height / cells_distance);
+    for (auto &it: cell) {
+        it.resize(Width / cells_distance);
+    }
 }
 
 //constructor
 Map::Map(unsigned int H, unsigned int W, unsigned int N) : Height(H), Width(W), number_of_Cells(N) {
-    cell.resize(N);
+    cell.resize(Height / cells_distance);
+    for (auto &it: cell) {
+        it.resize(Width / cells_distance);
+    }
 }
 
 //copy constructor
 Map::Map(const Map &map) : Height(map.Height), Width(map.Width), number_of_Cells(map.number_of_Cells) {
-    cell.resize(map.number_of_Cells);
-    for (int i = 0; i < map.number_of_Cells; i++) cell[i] = map.cell[i];
-    //надо бы еще значения из вектора скопировать, но мне лень - готово
+    cell.resize(map.Height / map.cells_distance);
+    for (auto &it: cell) {
+        it.resize(map.Width / map.cells_distance);
+    }
+    for (int i = 0; i < map.Height / map.cells_distance; i++) {
+        for (int j = 0; j < map.Width / map.cells_distance; j++)
+            cell[i][j] = map.cell[i][j];
+    }
 }
 
-//operataor overload - присваивание одному мапу, другой
+//operator = overload
 Map &Map::operator=(const Map &map) {
     if (this == &map) {
         return *this;
@@ -29,129 +43,291 @@ Map &Map::operator=(const Map &map) {
     Height = map.Height;
     Width = map.Width;
     number_of_Cells = map.number_of_Cells;
-    cell.resize(map.number_of_Cells);
-    for (int i = 0; i < map.number_of_Cells; i++) cell[i] = map.cell[i];
-    //надо бы еще значения скопировать, но мне лень - готово
+    cell.resize(map.Height);
+    for (auto &it: cell) {
+        it.resize(map.Width);
+    }
+    for (int i = 0; i < map.Height / map.cells_distance; i++) {
+        for (int j = 0; j < map.Width / map.cells_distance; j++) cell[i][j] = map.cell[i][j];
+    }
     return *this;
 }
 
+/*########################################################################################*/
+/*#################################Getters and Setters####################################*/
+/*########################################################################################*/
 
+unsigned Map:: Get_Height() const {
+    return Height;
+};
 
+unsigned Map:: Get_Width() const {
+    return Width;
+};
+
+void Map:: Set_cell_coordinates(unsigned i, unsigned j) {
+    cell[i][j].Set_coordinates(i * cells_distance, j * cells_distance);
+};
+
+void Map:: Set_cell_impurity(unsigned i, unsigned j, double impurity) {
+    cell[i][j].Set_impurity(impurity);
+}
+void Map:: Set_cell_solution(unsigned i, unsigned j, double solution) {
+    cell[i][j].Set_solution(solution);
+    cell[i][j].Set_impurity(max_density - solution);
+}
+void Map:: Set_cell_next_step_solution(unsigned i, unsigned j, double next_step_solution){
+    cell[i][j].Set_next_step_solution(next_step_solution);
+}
+double Map:: Get_cell_next_step_solution(unsigned i, unsigned j){
+    return cell[i][j].Get_next_step_solution();
+}
+std::pair<double, double> Map:: Get_cell_coordinates(unsigned i, unsigned j) const {
+    return cell[i][j].Get_coordinates();
+}
+
+double Map:: Get_cell_impurity(unsigned i, unsigned j) const {
+    return cell[i][j].Get_impurity();
+}
+double Map:: Get_cell_solution(unsigned i, unsigned j) const {
+    return cell[i][j].Get_solution();
+}
+Cells& Map:: Get_cell_i(unsigned i, unsigned j) {
+    return cell[i][j];
+}
+
+Cells Map:: Get_cell_i(unsigned i, unsigned j) const {
+    return cell[i][j];
+}
+
+unsigned Map:: Get_number_of_Cells() {
+    return number_of_Cells;
+}
+
+/*########################################################################################*/
+/*########################################Math############################################*/
+/*########################################################################################*/
+
+// setting initial values
 void Map::Set_cell_origin() {
     unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
     std::default_random_engine e(seed);
-    tot_solution = 0.0;
     std::random_device rd;
     std::mt19937 gen(seed);
     std::uniform_real_distribution<double> distrib(0, 1);
-    for (unsigned i = 0; i < Height; i += 2) {
-        for (unsigned j = 0; j < Width; j += 2) {
-            if (i / 2 * Width / 2 + j / 2 < number_of_Cells) {
-                Set_cell_coordinates(i / 2 * Width / 2 + j / 2, j, i);
-                double rand_temp =  distrib(gen);
-                cell[i / 2 * Width / 2 + j / 2].Set_solution(max_density *rand_temp);
-                cell[i / 2 * Width / 2 + j / 2].Set_impurity(max_density - cell[i].Get_solution());
-                cell[i / 2 * Width / 2 + j / 2].Set_next_step_solution(max_density *rand_temp);
-                state = false;
-            }
+    for (unsigned i = 0; i < Height / cells_distance; i++) {
+        for (unsigned j = 0; j < Width / cells_distance; j++) {
+            cell[i][j].Set_coordinates(i, j);
+            double rand_temp = distrib(gen);
+            if (i == 0 || i == Height / cells_distance - 1 || j == 0 || j == Width / cells_distance - 1)
+                rand_temp = 0;
+            cell[i][j].Set_solution(rand_temp);
+            cell[i][j].Set_next_step_solution(rand_temp);
+            cell[i][j].Set_state(false);
+            cell[i][j].Set_state_color(false);
         }
     }
+    cell[Height / pow(cells_distance, 2)][Width / pow(cells_distance, 2)].Set_state(true);
+    cell[Height / pow(cells_distance, 2)][Width / pow(cells_distance, 2)].Set_state_color(true);
+    cells_crystall.push_back(&cell[Height / pow(cells_distance, 2)][Width / pow(cells_distance, 2)]);
+    cell[Height / pow(cells_distance, 2)][Width / pow(cells_distance, 2)].Set_solution(max_density);
+    cell[Height / pow(cells_distance, 2)][Width / pow(cells_distance, 2)].Set_next_step_solution(max_density);
 }
 
-/*
-void Map::Differential_equation_iteration1() {
-    double total_solution = 0.0;
-    //double total_impurity = 0.0;
-    double x = 0, y = 0;
-    for (int i = 0; i < number_of_Cells; i++) {
-        total_solution = Get_cell_solution(i) * (1 - 4 * diffusion_coef * dt / (dx * dx));
-        //total_impurity = Get_cell_impurity(i) * (1 - 4 * diffusion_coef) * dt / (dx * dx);
-        x = Get_cell_coordinates(i).first;
-        y = Get_cell_coordinates(i).second;
-        if (x - 2 >= 0) {
-            total_solution += Get_cell_solution(i - 1) * diffusion_coef * dt / (dx * dx);
-            //total_impurity += Get_cell_impurity(i - 1) * diffusion_coef * dt / (dx * dx);
-            //std::cout<< "L";
-        }
-        if (x + 2 <= Width - 2) {
-            total_solution += Get_cell_solution(i + 1) * diffusion_coef * dt / (dx * dx);
-            //total_impurity += Get_cell_impurity(i + 1) * diffusion_coef * dt / (dx * dx);
-            //std::cout<< "R";
-        }
-        if (y - 2 >= 0) {
-            total_solution += Get_cell_solution(i - Width / 2) * diffusion_coef * dt / (dx * dx);
-            //total_impurity += Get_cell_impurity(i - Width / 2) * diffusion_coef * dt / (dx * dx);
-        }
-        if (y + 2 <= Height - 2) {
-            total_solution += Get_cell_solution(i + Width / 2) * diffusion_coef * dt / (dx * dx);
-            //total_impurity += Get_cell_impurity(i + Width / 2) * diffusion_coef * dt / (dx * dx);
-        }
-        Set_cell_solution(i, total_solution);
-        //Set_impurity(total_impurity);
-    }
-    double tot_solution = 0.0;
-    for(int i = 0; i < number_of_Cells; i ++)
-    {
-        std::cout << cell[i].Get_solution() << " ";
-        //tot_solution += cell[i].Get_solution();
-    }
-    std::cout << "\n";
-}*/
-
-//Тут чуть подправил, идея в чем:
-//Завели новую поле со значением следущего шага
-//И присваиваем значение для следущего шага
-void Map::Differential_equation_iteration2() {
+//solution of differential equation
+void Map::Differential_equation_iteration() {
     double total_solution = 0.0;
     std::pair<double, double> coordinates_temp;
-    for (int i = 0; i < number_of_Cells; i++) {
-        total_solution = 0.0;
-        Set_cell_solution(i, Get_cell_next_step_solution(i));
-        total_solution = Get_cell_next_step_solution(i)* (1 - 4 * diffusion_coef * dt / (dx * dx));
-        coordinates_temp.first = Get_cell_coordinates(i).first;
-        coordinates_temp.second = Get_cell_coordinates(i).second;
-        if (coordinates_temp.first - 2 >= 0) {
-            total_solution += Get_cell_solution(i - 1) * diffusion_coef * dt / (dx * dx);
+    for (int i = 1; i < Height / cells_distance - 1; i++) {
+        for (int j = 1; j < Width / cells_distance - 1; j++) {
+            if (!cell[i][j].Get_state_color()) {
+                total_solution = 0.0;
+                coordinates_temp.first = i;
+                coordinates_temp.second = j;
+                Set_cell_solution(i, j, Get_cell_next_step_solution(i, j));
+                total_solution = Get_cell_solution(i, j) * (1 - 4 * diffusion_coef * dt / (dx * dx));
+                // block with if in the absence of boundary conditions
+                /*
+                if (i - 1 >= 0) {
+                    total_solution += Get_cell_solution(i - 1, j) * diffusion_coef * dt / (dx * dx);
+                }
+                if (i + 1 < Height / 2) {
+                    total_solution += Get_cell_solution(i + 1, j) * diffusion_coef * dt / (dx * dx);
+                }
+
+                if (j - 1 >= 0) {
+                    total_solution += Get_cell_solution(i, j - 1) * diffusion_coef * dt / (dx * dx);
+                }
+                if (j + 1 < Width / 2) {
+                    total_solution += Get_cell_solution(i, j + 1) * diffusion_coef * dt / (dx * dx);
+                }*/
+                total_solution += cell[i - 1][j].Get_state_color() ? 0 : Get_cell_solution(i - 1, j) * diffusion_coef *
+                                                                         dt /
+                                                                         (dx * dx);
+                total_solution += cell[i + 1][j].Get_state_color() ? 0 : Get_cell_next_step_solution(i + 1, j) *
+                                                                         diffusion_coef * dt / (dx * dx);
+                total_solution += cell[i][j - 1].Get_state_color() ? 0 : Get_cell_solution(i, j - 1) * diffusion_coef *
+                                                                         dt /
+                                                                         (dx * dx);
+                total_solution += cell[i][j + 1].Get_state_color() ? 0 : Get_cell_next_step_solution(i, j + 1) *
+                                                                         diffusion_coef * dt / (dx * dx);
+
+                Set_cell_next_step_solution(i, j, total_solution);
+            }
         }
-        if (coordinates_temp.first + 2 <= Width - 2) {
-            total_solution += Get_cell_next_step_solution(i + 1) * diffusion_coef * dt / (dx * dx);
-        }
-        if (coordinates_temp.second - 2 >= 0) {
-            total_solution += Get_cell_solution(i - Width / 2) * diffusion_coef * dt / (dx * dx);
-        }
-        if (coordinates_temp.second + 2 <= Height - 2) {
-            total_solution += Get_cell_next_step_solution(i + Width / 2) * diffusion_coef * dt / (dx * dx);
-        }
-        Set_cell_next_step_solution(i, total_solution);
     }
 }
 
+// process of crystallization and dissolution
+void Map::Crystallization_process(int i, int j) {
+    //pass circle radius, increases by one
+    int k = 1;
+    //the amount of substance needed for crystallization
+    double needed_solution = max_density - cell[i][j].Get_next_step_solution();
+    //the amount of substance in this circle
+    double summary_group_solution;
+    int x, y;
+    //proportionality coefficient
+    double ratio = 0.0;
+    while (needed_solution > 0) {
+
+        summary_group_solution = 0;
+        //calculation the amount of substance in cells of  this circle
+        if (j - k > 0) {
+            if (!cell[i][j - k].Get_state() && !cell[i][j - k].Get_state_color()) {
+                summary_group_solution += cell[i][j - k].Get_next_step_solution();
+            }
+        }
+        if (j + k <= Width / 2 - 1) {
+            if (!cell[i][j + k].Get_state() && !cell[i][j + k].Get_state_color()) {
+                summary_group_solution += cell[i][j + k].Get_next_step_solution();
+            }
+        }
+        for (y = j - k + 1; y < j + k; y++) {
+            x = i + k - abs(j - y);
+            if (x >= 0 && x < Height / cells_distance && y >= 0 && y < Width / cells_distance) {
+                if (!cell[x][y].Get_state() && !cell[x][y].Get_state_color()) {
+                    summary_group_solution += cell[x][y].Get_next_step_solution();
+                }
+            }
+            x = i - k + abs(j - y);
+            if (x >= 0 && x < Height / cells_distance && y >= 0 && y < Width / cells_distance) {
+                if (!cell[x][y].Get_state() && !cell[x][y].Get_state_color()) {
+                    summary_group_solution += cell[x][y].Get_next_step_solution();
+                }
+            }
+        }
+        // check if there is enough substance for crystallization
+        if (summary_group_solution >= needed_solution) {
+            ratio = needed_solution / summary_group_solution;
+            cell[i][j].Set_next_step_solution(max_density);
+            cell[i][j].Set_impurity(0.0);
+        } else {
+            ratio = 1;
+            cell[i][j].Set_next_step_solution(cell[i][j].Get_next_step_solution() + summary_group_solution);
+            cell[i][j].Set_impurity(max_density - cell[i][j].Get_next_step_solution());
+        }
+        // if there is enough substance in this circle, we subtract proportionally the amount,
+        //else we subtract all the amount in this circle
+        //the amount of substance in the cell
+        double current_solution;
+        if (j - k > 0) {
+            if (!cell[i][j - k].Get_state() && !cell[i][j - k].Get_state_color()) {
+                current_solution = cell[i][j - k].Get_next_step_solution();
+                cell[i][j - k].Set_next_step_solution(current_solution * (1 - ratio));
+            }
+        }
+        if (j + k <= Width / cells_distance - 1) {
+            if (!cell[i][j + k].Get_state() && !cell[i][j + k].Get_state_color()) {
+                current_solution = cell[i][j + k].Get_next_step_solution();
+                cell[i][j + k].Set_next_step_solution(current_solution * (1 - ratio));
+            }
+        }
+        for (y = j - k + 1; y < j + k; y++) {
+            x = i + k - abs(j - y);
+            if (x > 0 && x < Height / cells_distance && y > 0 && y < Width / cells_distance) {
+                if (!cell[x][y].Get_state() && !cell[x][y].Get_state_color()) {
+                    current_solution = cell[x][y].Get_next_step_solution();
+                    cell[x][y].Set_next_step_solution(current_solution * (1 - ratio));
+                }
+            }
+            x = i - k + abs(j - y);
+            if (x > 0 && x < Height / cells_distance && y > 0 && y < Width / cells_distance) {
+                if (!cell[x][y].Get_state() && !cell[x][y].Get_state_color()) {
+                    current_solution = cell[x][y].Get_next_step_solution();
+                    cell[x][y].Set_next_step_solution(current_solution * (1 - ratio));
+                }
+            }
+        }
+
+
+        needed_solution -= summary_group_solution;
+        k++;
+    }
+}
+//crystal one lab build
 void Map::Crystallization_dissolution_check() {
     unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
-    std::default_random_engine e(seed);
-
-    std::random_device rd;
     std::mt19937 gen(seed);
-    std::uniform_real_distribution<double> distrib(0, 1);
+    //check, are cells crystallization with random values
+    for (int i = 1; i < Height / cells_distance - 1; i++) {
+        for (int j = 1; j < Width / cells_distance - 1; j++) {
+            if (!cell[i][j].Get_state_color()) {
 
-    for (int i = 0; i < number_of_Cells; i++) {
-        cell[i].Set_crys_rate_prob();
-        cell[i].Set_dis_rate_prob();
-        double prob = distrib(gen);
-        if (prob <= dis_prob) state = false;
-        if (prob > dis_prob && prob <= dis_prob + crys_prob) {
-            state = true;
-            // тут можно процесс кристализации вынести в отдельную функцию, но мне лень
-            double total_solution = 0; // итоговая концентрация, которую собираем с соседних ячеек
-            int j = 1; // номер группы ячеек, в цикле они возрастают
-            while (total_solution < cell[i].Get_impurity()) {
+                std::uniform_real_distribution<double> distrib(0,
+                                                               cell[i][j].Get_dis_prob() + cell[i][j].Get_crys_prob());
+                cell[i][j].Set_crys_rate_prob();
+                cell[i][j].Set_dis_rate_prob();
 
+                double prob = distrib(gen);
+                if (prob < cell[i][j].Get_dis_prob()) cell[i][j].Set_state(false);
+                if (prob >= cell[i][j].Get_dis_prob()) {
+                    cell[i][j].Set_state(true);
+                }
             }
-
         }
     }
-};
-
-void Map::Crystallization_process() {
-
+    int x, y;
+    //vector pointers on crystallized cells on this lab
+    std::vector<Cells *> b;
+    //check, are crystallized cells near cells, which crystallized in past lab
+    for (auto &it: cells_crystall) {
+        y = it->Get_coordinates().second / cells_distance - 1;
+        x = it->Get_coordinates().first / cells_distance;
+        if (x > 0 && x < Height / cells_distance && y > 0 && y < Width / cells_distance && cell[x][y].Get_state() &&
+            !cell[x][y].Get_state_color()) {
+            cell[x][y].Set_state_color(true);
+            b.push_back(&cell[x][y]);
+            Crystallization_process(x, y);
+        }
+        y = it->Get_coordinates().second / cells_distance + 1;
+        x = it->Get_coordinates().first / cells_distance;
+        if (x > 0 && x < Height / cells_distance && y > 0 && y < Width / cells_distance && cell[x][y].Get_state() &&
+            !cell[x][y].Get_state_color()) {
+            cell[x][y].Set_state_color(true);
+            b.push_back(&cell[x][y]);
+            Crystallization_process(x, y);
+        }
+        y = it->Get_coordinates().second / cells_distance;
+        x = it->Get_coordinates().first / cells_distance + 1;
+        if (x > 0 && x < Height / cells_distance && y > 0 && y < Width / cells_distance && cell[x][y].Get_state() &&
+            !cell[x][y].Get_state_color()) {
+            cell[x][y].Set_state_color(true);
+            b.push_back(&cell[x][y]);
+            Crystallization_process(x, y);
+        }
+        y = it->Get_coordinates().second / cells_distance;
+        x = it->Get_coordinates().first / cells_distance - 1;
+        if (x > 0 && x < Height / cells_distance && y > 0 && y < Width / cells_distance && cell[x][y].Get_state() &&
+            !cell[x][y].Get_state_color()) {
+            cell[x][y].Set_state_color(true);
+            b.push_back(&cell[x][y]);
+            Crystallization_process(x, y);
+        }
+    }
+    //push a cells which crystallized in this lab in the vector pointer crystallization
+    for (auto &q:b) {
+        cells_crystall.push_back(q);
+    }
+    b.clear();
 }

@@ -1,32 +1,35 @@
 
 #include "Map_Draw.h"
-
+//setting the max crystallized substance density
 double Cells::max_density = 2;
+//setting the equilibrium concentration
 double Cells::equilibrium_concentration = 1;
+//setting the equilibrium speed rate
 double Cells::basic_rate = 0.1;
+//setting diffusion coefficient
 double Cells::diffusion_coef = 1;
+//setting distance between cells
+unsigned Cells::cells_distance =2;
+//setting the time step in differential equation
+const double Cells::dt = 0.00001;
+//setting the distance step in differential equation
+const double Cells:: dx = 0.01;
+//setting the number of cells
 template <typename T>
-int Max_number (T Height, T Width, int step){
-    return (Height*Width/step)/step;
+int Max_number (T Height, T Width,int cells_distance){
+    return (Height*Width/cells_distance)/cells_distance;
 }
 int main() {
-    unsigned Height = 8;
-    unsigned Width = 8;
-    unsigned number_of_points = 16;
-
-    //Cells::max_density = 2; // г/см3
-    //Map::max_density = 2;
-//    Map::equilibrium_concentration = 1; // г/см3
-//    Map::basic_rate = 0.1; // см/с
-//    Map::diffusion_coef = 1; // см2/с
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> distrib(1, 100);
-    //double max_density = 2; // г/см3
-
+    //setting size of map
+    size_t Height = 1000;
+    size_t Width = 1000;
+    //setting number of cells
+    unsigned number_of_points = Max_number(Height, Width,Cells::cells_distance);
+    //create map
     Map map(Height, Width, number_of_points);
-    //map.Set_max_density(max_density);
+    //create crystallization process
     Map_Draw a(map);
+    //start and display crystallization process
     a.Display();
     return 0;
 }
