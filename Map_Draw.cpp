@@ -12,6 +12,7 @@ void Map_Draw::Display() {
     sf::RenderWindow window(sf::VideoMode(this->map.Get_Width(), this->map.Get_Height()), "Particles");
     window.setFramerateLimit(30);
     window.setVerticalSyncEnabled(true);
+    //set start values
     map.Set_cell_origin();
     while (window.isOpen()) {
         // handle events
@@ -22,8 +23,7 @@ void Map_Draw::Display() {
         }
         window.clear();
 
-        map.Differential_equation_iteration2();
-        //std::cout<<1;
+        map.Differential_equation_iteration();
         map.Crystallization_dissolution_check();
         //draw moving particles
         for (std::size_t i = 0; i < map.Get_Height() / 2; i++) {
