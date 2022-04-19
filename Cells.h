@@ -30,7 +30,7 @@ protected:
     double dis_prob; // dissolution probability
     double crys_rate; // crystallization rate
     double dis_rate; // dissolution rate
-    //double max_density;
+    bool blue_color;
 
 public:
     static const double dt; // 10 in -5 seconds
@@ -42,6 +42,12 @@ public:
     static double diffusion_coef;
     Cells();
     void Set_state_color(bool state_c);
+    void Set_blue_color(bool state_b){
+        blue_color = state_b;
+    }
+    bool Get_blue_color(){
+        return blue_color;
+    }
     void Set_coordinates(double x, double y) ;
     void Set_state(bool state);
     void Set_impurity(double impurity);

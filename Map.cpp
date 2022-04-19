@@ -57,50 +57,56 @@ Map &Map::operator=(const Map &map) {
 /*#################################Getters and Setters####################################*/
 /*########################################################################################*/
 
-unsigned Map:: Get_Height() const {
+unsigned Map::Get_Height() const {
     return Height;
 };
 
-unsigned Map:: Get_Width() const {
+unsigned Map::Get_Width() const {
     return Width;
 };
 
-void Map:: Set_cell_coordinates(unsigned i, unsigned j) {
+void Map::Set_cell_coordinates(unsigned i, unsigned j) {
     cell[i][j].Set_coordinates(i * cells_distance, j * cells_distance);
 };
 
-void Map:: Set_cell_impurity(unsigned i, unsigned j, double impurity) {
+void Map::Set_cell_impurity(unsigned i, unsigned j, double impurity) {
     cell[i][j].Set_impurity(impurity);
 }
-void Map:: Set_cell_solution(unsigned i, unsigned j, double solution) {
+
+void Map::Set_cell_solution(unsigned i, unsigned j, double solution) {
     cell[i][j].Set_solution(solution);
     cell[i][j].Set_impurity(max_density - solution);
 }
-void Map:: Set_cell_next_step_solution(unsigned i, unsigned j, double next_step_solution){
+
+void Map::Set_cell_next_step_solution(unsigned i, unsigned j, double next_step_solution) {
     cell[i][j].Set_next_step_solution(next_step_solution);
 }
-double Map:: Get_cell_next_step_solution(unsigned i, unsigned j){
+
+double Map::Get_cell_next_step_solution(unsigned i, unsigned j) {
     return cell[i][j].Get_next_step_solution();
 }
-std::pair<double, double> Map:: Get_cell_coordinates(unsigned i, unsigned j) const {
+
+std::pair<double, double> Map::Get_cell_coordinates(unsigned i, unsigned j) const {
     return cell[i][j].Get_coordinates();
 }
 
-double Map:: Get_cell_impurity(unsigned i, unsigned j) const {
+double Map::Get_cell_impurity(unsigned i, unsigned j) const {
     return cell[i][j].Get_impurity();
 }
-double Map:: Get_cell_solution(unsigned i, unsigned j) const {
+
+double Map::Get_cell_solution(unsigned i, unsigned j) const {
     return cell[i][j].Get_solution();
 }
-Cells& Map:: Get_cell_i(unsigned i, unsigned j) {
+
+Cells &Map::Get_cell_i(unsigned i, unsigned j) {
     return cell[i][j];
 }
 
-Cells Map:: Get_cell_i(unsigned i, unsigned j) const {
+Cells Map::Get_cell_i(unsigned i, unsigned j) const {
     return cell[i][j];
 }
 
-unsigned Map:: Get_number_of_Cells() {
+unsigned Map::Get_number_of_Cells() {
     return number_of_Cells;
 }
 
@@ -114,7 +120,7 @@ void Map::Set_cell_origin() {
     std::default_random_engine e(seed);
     std::random_device rd;
     std::mt19937 gen(seed);
-    std::uniform_real_distribution<double> distrib(0, 1);
+    std::uniform_real_distribution<double> distrib(0, max_density/4);
     for (unsigned i = 0; i < Height / cells_distance; i++) {
         for (unsigned j = 0; j < Width / cells_distance; j++) {
             cell[i][j].Set_coordinates(i, j);
@@ -125,17 +131,27 @@ void Map::Set_cell_origin() {
             cell[i][j].Set_next_step_solution(rand_temp);
             cell[i][j].Set_state(false);
             cell[i][j].Set_state_color(false);
+            cell[i][j].Set_blue_color(false);
         }
     }
-    cell[Height / pow(cells_distance, 2)][Width / pow(cells_distance, 2)].Set_state(true);
-    cell[Height / pow(cells_distance, 2)][Width / pow(cells_distance, 2)].Set_state_color(true);
-    cells_crystall.push_back(&cell[Height / pow(cells_distance, 2)][Width / pow(cells_distance, 2)]);
-    cell[Height / pow(cells_distance, 2)][Width / pow(cells_distance, 2)].Set_solution(max_density);
-    cell[Height / pow(cells_distance, 2)][Width / pow(cells_distance, 2)].Set_next_step_solution(max_density);
+    cell[Height / pow(2, cells_distance)][Width / pow(2, cells_distance)].Set_state(true);
+    cell[Height / pow(2, cells_distance)][Width / pow(2, cells_distance)].Set_state_color(true);
+    cells_crystall.push_back(&cell[Height / pow(2, cells_distance)][Width / pow(2, cells_distance)]);
+    cell[Height / pow(2, cells_distance)][Width / pow(2, cells_distance)].Set_solution(max_density);
+    cell[Height / pow(2, cells_distance)][Width / pow(2, cells_distance)].Set_next_step_solution(max_density);
+    //std::cout<<cell[999][999].Get_coordinates().first<<" "<<cell[999][999].Get_coordinates().second;
 }
 
 //solution of differential equation
 void Map::Differential_equation_iteration() {
+    double summ=0;
+    /*for(auto &it:cell){
+        for(auto &re:it){
+            summ+=re.Get_solution();
+        }
+    }*/
+    //std::cout<<summ<<" ";
+    summ=0;
     double total_solution = 0.0;
     std::pair<double, double> coordinates_temp;
     for (int i = 1; i < Height / cells_distance - 1; i++) {
@@ -147,8 +163,7 @@ void Map::Differential_equation_iteration() {
                 Set_cell_solution(i, j, Get_cell_next_step_solution(i, j));
                 total_solution = Get_cell_solution(i, j) * (1 - 4 * diffusion_coef * dt / (dx * dx));
                 // block with if in the absence of boundary conditions
-                /*
-                if (i - 1 >= 0) {
+                /*if (i - 1 >= 0) {
                     total_solution += Get_cell_solution(i - 1, j) * diffusion_coef * dt / (dx * dx);
                 }
                 if (i + 1 < Height / 2) {
@@ -171,11 +186,27 @@ void Map::Differential_equation_iteration() {
                                                                          (dx * dx);
                 total_solution += cell[i][j + 1].Get_state_color() ? 0 : Get_cell_next_step_solution(i, j + 1) *
                                                                          diffusion_coef * dt / (dx * dx);
+//                total_solution +=  Get_cell_solution(i - 1, j) * diffusion_coef *
+//                                                                         dt /
+//                                                                         (dx * dx);
+//                total_solution +=  Get_cell_next_step_solution(i + 1, j) *
+//                                                                         diffusion_coef * dt / (dx * dx);
+//                total_solution +=  Get_cell_solution(i, j - 1) * diffusion_coef *
+//                                                                         dt /
+//                                                                         (dx * dx);
+//                total_solution +=  Get_cell_next_step_solution(i, j + 1) *
+//                                                                         diffusion_coef * dt / (dx * dx);
 
                 Set_cell_next_step_solution(i, j, total_solution);
             }
         }
     }
+    /*for(auto &it:cell){
+        for(auto &re:it){
+            summ+=re.Get_solution();
+        }
+    }*/
+    //std::cout<<summ<<"\n";
 }
 
 // process of crystallization and dissolution
@@ -265,6 +296,7 @@ void Map::Crystallization_process(int i, int j) {
         k++;
     }
 }
+
 //crystal one lab build
 void Map::Crystallization_dissolution_check() {
     unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
@@ -274,14 +306,15 @@ void Map::Crystallization_dissolution_check() {
         for (int j = 1; j < Width / cells_distance - 1; j++) {
             if (!cell[i][j].Get_state_color()) {
 
+                //std::uniform_real_distribution<double> distrib(0,cell[i][j].Get_dis_prob() + cell[i][j].Get_crys_prob());
                 std::uniform_real_distribution<double> distrib(0,
-                                                               cell[i][j].Get_dis_prob() + cell[i][j].Get_crys_prob());
+                                                               1);
                 cell[i][j].Set_crys_rate_prob();
                 cell[i][j].Set_dis_rate_prob();
 
                 double prob = distrib(gen);
                 if (prob < cell[i][j].Get_dis_prob()) cell[i][j].Set_state(false);
-                if (prob >= cell[i][j].Get_dis_prob()) {
+                if (prob >= cell[i][j].Get_dis_prob() && prob<=cell[i][j].Get_dis_prob()+cell[i][j].Get_dis_prob()) {
                     cell[i][j].Set_state(true);
                 }
             }
@@ -330,4 +363,54 @@ void Map::Crystallization_dissolution_check() {
         cells_crystall.push_back(q);
     }
     b.clear();
+}
+
+void Map::Rhompus(int count) {
+    int i = Height / pow(2, cells_distance);
+    int j = Width / pow(2, cells_distance);
+    //int count=0;
+    double delta_r = sqrt(4 * diffusion_coef * dt * count) / dx;
+    //std::cout<<delta_r<<'\n';
+    delta_r = round(delta_r);
+    if (j - delta_r > 0) {
+        cell[i][j - static_cast<int>(delta_r)].Set_blue_color(true);
+    }
+    if (j + delta_r < Width / cells_distance) {
+        cell[i][j + static_cast<int>(delta_r)].Set_blue_color(true);
+    }
+    for (int y = j - static_cast<int>(delta_r) + 1; y < j + static_cast<int>(delta_r); y++) {
+        int x = i + static_cast<int>(delta_r) - abs(j - y);
+        if (x > 0 && x < Height / cells_distance && y > 0 && y < Width / cells_distance) {
+            cell[x][y].Set_blue_color(true);
+        }
+        x = i - static_cast<int>(delta_r) + abs(j - y);
+        if (x > 0 && x < Height / cells_distance && y > 0 && y < Width / cells_distance) {
+            cell[x][y].Set_blue_color(true);
+        }
+    }
+    count++;
+}
+
+void Map::Rhompus_clean(int count) {
+    int i = Height / pow(cells_distance, 2);
+    int j = Width / pow(cells_distance, 2);
+    double delta_r = sqrt(4 * diffusion_coef * dt * count) / dx;
+    delta_r = round(delta_r);
+    if (j - delta_r > 0) {
+        cell[i][j - static_cast<int>(delta_r)].Set_blue_color(false);
+    }
+    if (j + delta_r < Width / cells_distance) {
+        cell[i][j + static_cast<int>(delta_r)].Set_blue_color(false);
+    }
+    for (int y = j - static_cast<int>(delta_r) + 1; y < j + static_cast<int>(delta_r); y++) {
+        int x = i + static_cast<int>(delta_r) - abs(j - y);
+        if (x > 0 && x < Height / cells_distance && y > 0 && y < Width / cells_distance) {
+            cell[x][y].Set_blue_color(false);
+        }
+        x = i - static_cast<int>(delta_r) + abs(j - y);
+        if (x > 0 && x < Height / cells_distance && y > 0 && y < Width / cells_distance) {
+            cell[x][y].Set_blue_color(false);
+        }
+    }
+    count++;
 }

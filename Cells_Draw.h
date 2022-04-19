@@ -10,6 +10,7 @@ class Cells_Draw {
 protected:
     sf::Color color_free = sf::Color(255, 0, 0, 200);
     sf::Color color_crystal = sf::Color(0, 255, 0, 255);
+    sf::Color color_rhombus = sf::Color(0,0,0, 255);
     sf::Vertex circle[];
 public:
 

@@ -56,6 +56,8 @@ public:
     void Differential_equation_iteration();
     void Crystallization_dissolution_check();
     void Crystallization_process(int, int);
+    void Rhompus(int);
+    void Rhompus_clean(int);
 };
 
 
