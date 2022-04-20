@@ -16,6 +16,8 @@ protected:
     unsigned number_of_Cells;
     std::vector<std::vector<Cells>> cell;
     std::vector<Cells*>cells_crystall;
+    std::vector<std::thread*>cells_thread_even;
+    std::vector<std::thread*>cells_thread_uneven;
 public:
     Map();
     Map(unsigned, unsigned, unsigned);
@@ -35,7 +37,9 @@ public:
     Cells &Get_cell_i(unsigned i, unsigned j);
     Cells Get_cell_i(unsigned i, unsigned j) const;
     unsigned Get_number_of_Cells();
-
+    void Thread_Differential_equation_iteration();
+    void Thread_pass_even(std::size_t);
+    void Thread_pass_uneven(std::size_t);
     static double  Get_max_density(double max_density) {
         return max_density;
     }

@@ -10,7 +10,7 @@ Map_Draw::Map_Draw(Map &map) {
 
 void Map_Draw::Display() {
 
-    int count =0;
+  /*  int count =0;
     map.Set_cell_origin();
     while(count <= 100000)
     {
@@ -22,11 +22,14 @@ void Map_Draw::Display() {
     }
     sf::RenderWindow window(sf::VideoMode(this->map.Get_Width(), this->map.Get_Height()), "Particles");
     window.setFramerateLimit(30);
-    window.setVerticalSyncEnabled(true);
+    window.setVerticalSyncEnabled(true);*/
     //set start values
-
-    /*map.Set_cell_origin();
-
+    sf::RenderWindow window(sf::VideoMode(this->map.Get_Width(), this->map.Get_Height()), "Particles");
+    window.setFramerateLimit(30);
+    window.setVerticalSyncEnabled(true);
+    map.Set_cell_origin();
+    int count=0;
+    auto start = std::chrono::system_clock::now();
     while (window.isOpen()) {
         // handle events
         sf::Event event;
@@ -36,12 +39,20 @@ void Map_Draw::Display() {
         }
         window.clear();
         //map.Rhompus_clean(count);
-        map.Differential_equation_iteration();
+        //std::cout
+
+        map.Thread_Differential_equation_iteration();
         map.Crystallization_dissolution_check();
+        std::cout<<2;
         count++;
+        if(count%100==0){
+            auto end = std::chrono::system_clock::now();
+            std::chrono::duration<double> diff = end - start;
+            std::cout<<diff.count()<<"\n";
+        }
         //std::thread th((map.Rhompus),count);
         //map.Rhompus(count);
-        std::cout<<count<<"\n";
+        //std::cout<<count<<"\n";
         //draw moving particles
         for (std::size_t i = 0; i < map.Get_Height() / Cells::cells_distance; i++) {
             for (std::size_t j = 0; j < map.Get_Width() / Cells::cells_distance; j++) {
@@ -52,8 +63,8 @@ void Map_Draw::Display() {
 
         }
         window.display();
-    }*/
-    while (window.isOpen()) {
+    }
+    /*while (window.isOpen()) {
         // handle events
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -73,5 +84,5 @@ void Map_Draw::Display() {
         window.display();
     }
 
-    
+*/
 }

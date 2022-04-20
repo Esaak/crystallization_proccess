@@ -2,7 +2,7 @@
 #include "Map_Draw.h"
 //setting the max crystallized substance density g/cm^3
 //double Cells::max_density = 3.6;
-double Cells::max_density = 3;
+double Cells::max_density = 2.165;
 //setting the equilibrium concentration
 //double Cells::equilibrium_concentration = 0.1;
 double Cells::equilibrium_concentration = 0.7;
@@ -11,13 +11,13 @@ double Cells::equilibrium_concentration = 0.7;
 double Cells::basic_rate = 0.1;
 //setting diffusion coefficient cm^2/c
 //double Cells::diffusion_coef = 0.0000045;
-double Cells::diffusion_coef = 0.01;
+double Cells::diffusion_coef = 0.00001;
 //setting distance between cells
 unsigned Cells::cells_distance =1;
 //setting the time step in differential equation
-const double Cells::dt = 0.0001;
+const double Cells::dt = 0.00001;
 //setting the distance step in differential equation
-const double Cells:: dx = 0.0025;
+const double Cells:: dx = 0.000028;
 //setting the number of cells
 template <typename T>
 int Max_number (T Height, T Width,int cells_distance){

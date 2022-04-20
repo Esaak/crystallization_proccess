@@ -15,8 +15,8 @@
 #include <vector>
 #include <random>
 #include <chrono>
-
-
+#include <thread>
+#include <functional>
 class Cells {
 protected:
     std::pair<double, double> coordinates;

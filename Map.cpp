@@ -116,97 +116,330 @@ unsigned Map::Get_number_of_Cells() {
 
 // setting initial values
 void Map::Set_cell_origin() {
+    //double summ=0;
     unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
     std::default_random_engine e(seed);
     std::random_device rd;
     std::mt19937 gen(seed);
-    std::uniform_real_distribution<double> distrib(0, max_density/4);
+    std::normal_distribution<double> distrib{0.05 * max_density, sqrt(0.05 * max_density)};
+    //std::uniform_real_distribution<double> distrib(0, max_density/4);
     for (unsigned i = 0; i < Height / cells_distance; i++) {
         for (unsigned j = 0; j < Width / cells_distance; j++) {
             cell[i][j].Set_coordinates(i, j);
             double rand_temp = distrib(gen);
+            if (rand_temp < 0) rand_temp = 0;
+            if (rand_temp > 2 * 0.05 * max_density) rand_temp = 2 * 0.05 * max_density;
             if (i == 0 || i == Height / cells_distance - 1 || j == 0 || j == Width / cells_distance - 1)
                 rand_temp = 0;
+            //rand_temp<=0 ? std::cout<<rand_temp<<" ou \n": std::cout<<"";
             cell[i][j].Set_solution(rand_temp);
             cell[i][j].Set_next_step_solution(rand_temp);
             cell[i][j].Set_state(false);
             cell[i][j].Set_state_color(false);
             cell[i][j].Set_blue_color(false);
+            //summ+=rand_temp;
         }
     }
-    cell[Height / pow(2, cells_distance)][Width / pow(2, cells_distance)].Set_state(true);
-    cell[Height / pow(2, cells_distance)][Width / pow(2, cells_distance)].Set_state_color(true);
-    cells_crystall.push_back(&cell[Height / pow(2, cells_distance)][Width / pow(2, cells_distance)]);
-    cell[Height / pow(2, cells_distance)][Width / pow(2, cells_distance)].Set_solution(max_density);
-    cell[Height / pow(2, cells_distance)][Width / pow(2, cells_distance)].Set_next_step_solution(max_density);
+    //std::cout<<summ/(max_density*number_of_Cells);
+    //cells_thread_even.reserve(Width / 2);
+    //cells_thread_uneven.reserve(Width / 2);
+    cell[Height / (2 * cells_distance)][Width / (2 * cells_distance)].Set_state(true);
+    cell[Height / (2 * cells_distance)][Width / (2 * cells_distance)].Set_state_color(true);
+    cells_crystall.push_back(&cell[Height / (2 * cells_distance)][Width / (2 * cells_distance)]);
+    cell[Height / (2 * cells_distance)][Width / (2 * cells_distance)].Set_solution(max_density);
+    cell[Height / (2 * cells_distance)][Width / (2 * cells_distance)].Set_next_step_solution(max_density);
     //std::cout<<cell[999][999].Get_coordinates().first<<" "<<cell[999][999].Get_coordinates().second;
+}
+
+void Map::Thread_pass_even(std::size_t j) {
+    double total_solution = 0.0;
+    for (std::size_t i = 1; i < Height / cells_distance - 1; i++) {
+        if (!cell[i][j].Get_state_color()) {
+            Set_cell_solution(i, j, Get_cell_next_step_solution(i, j));
+            total_solution = Get_cell_solution(i, j) * (1 - 4 * diffusion_coef * dt / (dx * dx));
+            total_solution += cell[i - 1][j].Get_state_color() ? 0 : Get_cell_next_step_solution(i - 1, j) *
+                                                                     diffusion_coef *
+                                                                     dt /
+                                                                     (dx * dx);
+            total_solution += cell[i + 1][j].Get_state_color() ? 0 : Get_cell_next_step_solution(i + 1, j) *
+                                                                     diffusion_coef * dt / (dx * dx);
+            total_solution += cell[i][j - 1].Get_state_color() ? 0 : Get_cell_next_step_solution(i, j - 1) *
+                                                                     diffusion_coef *
+                                                                     dt /
+                                                                     (dx * dx);
+            total_solution += cell[i][j + 1].Get_state_color() ? 0 : Get_cell_next_step_solution(i, j + 1) *
+                                                                     diffusion_coef * dt / (dx * dx);
+            Set_cell_next_step_solution(i, j, total_solution);
+        }
+    }
+}
+
+void Map::Thread_pass_uneven(std::size_t j) {
+    double total_solution = 0.0;
+    for (std::size_t i = 1; i < Height / cells_distance - 1; i++) {
+        if (!cell[i][j].Get_state_color()) {
+            Set_cell_solution(i, j, Get_cell_next_step_solution(i, j));
+            total_solution = Get_cell_solution(i, j) * (1 - 4 * diffusion_coef * dt / (dx * dx));
+            total_solution += cell[i - 1][j].Get_state_color() ? 0 : Get_cell_solution(i - 1, j) *
+                                                                     diffusion_coef *
+                                                                     dt /
+                                                                     (dx * dx);
+            total_solution += cell[i + 1][j].Get_state_color() ? 0 : Get_cell_solution(i + 1, j) *
+                                                                     diffusion_coef * dt / (dx * dx);
+            total_solution += cell[i][j - 1].Get_state_color() ? 0 : Get_cell_solution(i, j - 1) *
+                                                                     diffusion_coef *
+                                                                     dt /
+                                                                     (dx * dx);
+            total_solution += cell[i][j + 1].Get_state_color() ? 0 : Get_cell_solution(i, j + 1) *
+                                                                     diffusion_coef * dt / (dx * dx);
+            Set_cell_next_step_solution(i, j, total_solution);
+        }
+    }
+}
+
+void Map::Thread_Differential_equation_iteration() {
+    for (int j = 2; j < Width/cells_distance; j += 2) {
+        cells_thread_even.push_back(new std::thread(&Map::Thread_pass_even, this, j));
+    }
+    for (auto &it:cells_thread_even) {
+        it->join();
+    }
+    for(int i=0; i<cells_thread_even.size();i++){
+        delete cells_thread_even[i];
+    }
+
+    cells_thread_even.resize(0);
+    for(int j=1;j<Width/cells_distance-1; j+=2){
+        cells_thread_uneven.push_back(new std::thread(&Map::Thread_pass_uneven, this, j));
+    }
+    for(auto& it:cells_thread_uneven){
+        it->join();
+    }
+    for(int i=0; i<cells_thread_uneven.size();i++){
+        delete cells_thread_uneven[i];
+    }
+    std::cout<<1;
+    cells_thread_even.resize(0);
 }
 
 //solution of differential equation
 void Map::Differential_equation_iteration() {
-    double summ=0;
-    /*for(auto &it:cell){
-        for(auto &re:it){
-            summ+=re.Get_solution();
-        }
-    }*/
-    //std::cout<<summ<<" ";
-    summ=0;
-    double total_solution = 0.0;
-    std::pair<double, double> coordinates_temp;
-    for (int i = 1; i < Height / cells_distance - 1; i++) {
-        for (int j = 1; j < Width / cells_distance - 1; j++) {
-            if (!cell[i][j].Get_state_color()) {
-                total_solution = 0.0;
-                coordinates_temp.first = i;
-                coordinates_temp.second = j;
-                Set_cell_solution(i, j, Get_cell_next_step_solution(i, j));
-                total_solution = Get_cell_solution(i, j) * (1 - 4 * diffusion_coef * dt / (dx * dx));
-                // block with if in the absence of boundary conditions
-                /*if (i - 1 >= 0) {
-                    total_solution += Get_cell_solution(i - 1, j) * diffusion_coef * dt / (dx * dx);
-                }
-                if (i + 1 < Height / 2) {
-                    total_solution += Get_cell_solution(i + 1, j) * diffusion_coef * dt / (dx * dx);
-                }
-
-                if (j - 1 >= 0) {
-                    total_solution += Get_cell_solution(i, j - 1) * diffusion_coef * dt / (dx * dx);
-                }
-                if (j + 1 < Width / 2) {
-                    total_solution += Get_cell_solution(i, j + 1) * diffusion_coef * dt / (dx * dx);
-                }*/
-                total_solution += cell[i - 1][j].Get_state_color() ? 0 : Get_cell_solution(i - 1, j) * diffusion_coef *
-                                                                         dt /
-                                                                         (dx * dx);
-                total_solution += cell[i + 1][j].Get_state_color() ? 0 : Get_cell_next_step_solution(i + 1, j) *
-                                                                         diffusion_coef * dt / (dx * dx);
-                total_solution += cell[i][j - 1].Get_state_color() ? 0 : Get_cell_solution(i, j - 1) * diffusion_coef *
-                                                                         dt /
-                                                                         (dx * dx);
-                total_solution += cell[i][j + 1].Get_state_color() ? 0 : Get_cell_next_step_solution(i, j + 1) *
-                                                                         diffusion_coef * dt / (dx * dx);
-//                total_solution +=  Get_cell_solution(i - 1, j) * diffusion_coef *
+//
+//    double summ = 0;
+//    /*for(auto &it:cell){
+//        for(auto &re:it){
+//            summ+=re.Get_next_step_solution();
+//        }
+//    }
+//    std::cout<<summ<<" ";*/
+//    summ = 0;
+//
+//    std::thread th1([&]() {
+//        std::pair<double, double> coordinates_temp;
+//        double total_solution = 0.0;
+//        for (int i = 1; i < Height / cells_distance - 1; i++) {
+//            //std::cout << 1;
+//            for (int j = 1; j < Width / (2 * cells_distance) - 1; j++) {
+//                if (!cell[i][j].Get_state_color()) {
+//                    total_solution = 0.0;
+//                    coordinates_temp.first = i;
+//                    coordinates_temp.second = j;
+//                    Set_cell_solution(i, j, Get_cell_next_step_solution(i, j));
+//                    total_solution = Get_cell_solution(i, j) * (1 - 4 * diffusion_coef * dt / (dx * dx));
+//                    // block with if in the absence of boundary conditions
+//                    /*if (i - 1 >= 0) {
+//                        total_solution += Get_cell_solution(i - 1, j) * diffusion_coef * dt / (dx * dx);
+//                    }
+//                    if (i + 1 < Height / 2) {
+//                        total_solution += Get_cell_solution(i + 1, j) * diffusion_coef * dt / (dx * dx);
+//                    }
+//
+//                    if (j - 1 >= 0) {
+//                        total_solution += Get_cell_solution(i, j - 1) * diffusion_coef * dt / (dx * dx);
+//                    }
+//                    if (j + 1 < Width / 2) {
+//                        total_solution += Get_cell_solution(i, j + 1) * diffusion_coef * dt / (dx * dx);
+//                    }*/
+//                    total_solution += cell[i - 1][j].Get_state_color() ? 0 : Get_cell_solution(i - 1, j) *
+//                                                                             diffusion_coef *
+//                                                                             dt /
+//                                                                             (dx * dx);
+//                    total_solution += cell[i + 1][j].Get_state_color() ? 0 : Get_cell_next_step_solution(i + 1, j) *
+//                                                                             diffusion_coef * dt / (dx * dx);
+//                    total_solution += cell[i][j - 1].Get_state_color() ? 0 : Get_cell_solution(i, j - 1) *
+//                                                                             diffusion_coef *
+//                                                                             dt /
+//                                                                             (dx * dx);
+//                    total_solution += cell[i][j + 1].Get_state_color() ? 0 : Get_cell_next_step_solution(i, j + 1) *
+//                                                                             diffusion_coef * dt / (dx * dx);
+////                total_solution +=  Get_cell_solution(i - 1, j) * diffusion_coef *
+////                                                                         dt /
+////                                                                         (dx * dx);
+////                total_solution +=  Get_cell_next_step_solution(i + 1, j) *
+////                                                                         diffusion_coef * dt / (dx * dx);
+////                total_solution +=  Get_cell_solution(i, j - 1) * diffusion_coef *
+////                                                                         dt /
+////                                                                         (dx * dx);
+////                total_solution +=  Get_cell_next_step_solution(i, j + 1) *
+////                                                                         diffusion_coef * dt / (dx * dx);
+//
+//                    Set_cell_next_step_solution(i, j, total_solution);
+//                }
+//            }
+//        }
+//
+//    });
+//    std::thread th2([&]() {
+//        std::pair<double, double> coordinates_temp;
+//        double total_solution = 0.0;
+//        for (int i = 1; i < Height / cells_distance - 1; i++) {
+//            //std::cout << 2;
+//            for (int j = Width / (2 * cells_distance); j < Width / cells_distance - 1; j++) {
+//                if (!cell[i][j].Get_state_color()) {
+//                    total_solution = 0.0;
+//                    coordinates_temp.first = i;
+//                    coordinates_temp.second = j;
+//                    Set_cell_solution(i, j, Get_cell_next_step_solution(i, j));
+//                    total_solution = Get_cell_solution(i, j) * (1 - 4 * diffusion_coef * dt / (dx * dx));
+//                    // block with if in the absence of boundary conditions
+//                    /*if (i - 1 >= 0) {
+//                        total_solution += Get_cell_solution(i - 1, j) * diffusion_coef * dt / (dx * dx);
+//                    }
+//                    if (i + 1 < Height / 2) {
+//                        total_solution += Get_cell_solution(i + 1, j) * diffusion_coef * dt / (dx * dx);
+//                    }
+//
+//                    if (j - 1 >= 0) {
+//                        total_solution += Get_cell_solution(i, j - 1) * diffusion_coef * dt / (dx * dx);
+//                    }
+//                    if (j + 1 < Width / 2) {
+//                        total_solution += Get_cell_solution(i, j + 1) * diffusion_coef * dt / (dx * dx);
+//                    }*/
+//                    total_solution += cell[i - 1][j].Get_state_color() ? 0 : Get_cell_solution(i - 1, j) *
+//                                                                             diffusion_coef *
+//                                                                             dt /
+//                                                                             (dx * dx);
+//                    total_solution += cell[i + 1][j].Get_state_color() ? 0 : Get_cell_next_step_solution(i + 1, j) *
+//                                                                             diffusion_coef * dt / (dx * dx);
+//                    total_solution += cell[i][j - 1].Get_state_color() ? 0 : j == Width / (2 * cells_distance) ?
+//                                                                             Get_cell_next_step_solution(i, j - 1) *
+//                                                                             diffusion_coef *
+//                                                                             dt /
+//                                                                             (dx * dx) : Get_cell_solution(i, j - 1) *
+//                                                                                         diffusion_coef *
+//                                                                                         dt /
+//                                                                                         (dx * dx);
+//                    total_solution += cell[i][j + 1].Get_state_color() ? 0 : Get_cell_next_step_solution(i, j + 1) *
+//                                                                             diffusion_coef * dt / (dx * dx);
+////                total_solution +=  Get_cell_solution(i - 1, j) * diffusion_coef *
+////                                                                         dt /
+////                                                                         (dx * dx);
+////                total_solution +=  Get_cell_next_step_solution(i + 1, j) *
+////                                                                         diffusion_coef * dt / (dx * dx);
+////                total_solution +=  Get_cell_solution(i, j - 1) * diffusion_coef *
+////                                                                         dt /
+////                                                                         (dx * dx);
+////                total_solution +=  Get_cell_next_step_solution(i, j + 1) *
+////                                                                         diffusion_coef * dt / (dx * dx);
+//
+//                    Set_cell_next_step_solution(i, j, total_solution);
+//                }
+//            }
+//        }
+//    });
+//    th1.join();
+//    th2.join();
+//    double total_solution = 0;
+//    for (int m = 1; m < Height / cells_distance - 1; m++) {
+//        if (!cell[m][Width / (2 * cells_distance) - 1].Get_state_color()) {
+//            Set_cell_solution(m, Width / (2 * cells_distance) - 1,
+//                              Get_cell_next_step_solution(m, Width / (2 * cells_distance) - 1));
+//
+//            total_solution =
+//                    Get_cell_solution(m, Width / (2 * cells_distance) - 1) * (1 - 4 * diffusion_coef * dt / (dx * dx));
+//            total_solution += cell[m - 1][Width / (2 * cells_distance) - 1].Get_state_color() ? 0 :
+//                              Get_cell_solution(m - 1, Width / (2 * cells_distance) - 1) * diffusion_coef *
+//                              dt /
+//                              (dx * dx);
+//            total_solution += cell[m + 1][Width / (2 * cells_distance) - 1].Get_state_color() ? 0 :
+//                              Get_cell_solution(m + 1, Width / (2 * cells_distance) - 1) *
+//                              diffusion_coef * dt / (dx * dx);
+//
+//            total_solution += cell[m][Width / (2 * cells_distance) - 1 - 1].Get_state_color() ? 0 :
+//                              Get_cell_solution(m, Width / (2 * cells_distance) - 1 - 1) * diffusion_coef *
+//                              dt /
+//                              (dx * dx);
+//            total_solution += cell[m][Width / (2 * cells_distance) - 1 + 1].Get_state_color() ? 0 :
+//                              Get_cell_solution(m, Width / (2 * cells_distance) - 1 + 1) *
+//                              diffusion_coef * dt / (dx * dx);
+//            //std::cout<<total_solution<<"\n";
+//            Set_cell_next_step_solution(m, Width / (2 * cells_distance) - 1, total_solution);
+//        }
+//
+//    }
+//
+//    /*
+//    for (int i = 1; i < Height / cells_distance - 1; i++) {
+//        for (int j = 1; j < Width / cells_distance - 1; j++) {
+//            if (!cell[i][j].Get_state_color()) {
+//                total_solution = 0.0;
+//                coordinates_temp.first = i;
+//                coordinates_temp.second = j;
+//                Set_cell_solution(i, j, Get_cell_next_step_solution(i, j));
+//                total_solution = Get_cell_solution(i, j) * (1 - 4 * diffusion_coef * dt / (dx * dx));
+//                // block with if in the absence of boundary conditions
+//                if (i - 1 >= 0) {
+//                    total_solution += Get_cell_solution(i - 1, j) * diffusion_coef * dt / (dx * dx);
+//                }
+//                if (i + 1 < Height / 2) {
+//                    total_solution += Get_cell_solution(i + 1, j) * diffusion_coef * dt / (dx * dx);
+//                }
+//
+//                if (j - 1 >= 0) {
+//                    total_solution += Get_cell_solution(i, j - 1) * diffusion_coef * dt / (dx * dx);
+//                }
+//                if (j + 1 < Width / 2) {
+//                    total_solution += Get_cell_solution(i, j + 1) * diffusion_coef * dt / (dx * dx);
+//                }
+//                total_solution += cell[i - 1][j].Get_state_color() ? 0 : Get_cell_solution(i - 1, j) * diffusion_coef *
 //                                                                         dt /
 //                                                                         (dx * dx);
-//                total_solution +=  Get_cell_next_step_solution(i + 1, j) *
+//                total_solution += cell[i + 1][j].Get_state_color() ? 0 : Get_cell_next_step_solution(i + 1, j) *
 //                                                                         diffusion_coef * dt / (dx * dx);
-//                total_solution +=  Get_cell_solution(i, j - 1) * diffusion_coef *
+//                total_solution += cell[i][j - 1].Get_state_color() ? 0 : Get_cell_solution(i, j - 1) * diffusion_coef *
 //                                                                         dt /
 //                                                                         (dx * dx);
-//                total_solution +=  Get_cell_next_step_solution(i, j + 1) *
+//                total_solution += cell[i][j + 1].Get_state_color() ? 0 : Get_cell_next_step_solution(i, j + 1) *
 //                                                                         diffusion_coef * dt / (dx * dx);
+////                total_solution +=  Get_cell_solution(i - 1, j) * diffusion_coef *
+////                                                                         dt /
+////                                                                         (dx * dx);
+////                total_solution +=  Get_cell_next_step_solution(i + 1, j) *
+////                                                                         diffusion_coef * dt / (dx * dx);
+////                total_solution +=  Get_cell_solution(i, j - 1) * diffusion_coef *
+////                                                                         dt /
+////                                                                         (dx * dx);
+////                total_solution +=  Get_cell_next_step_solution(i, j + 1) *
+////                                                                         diffusion_coef * dt / (dx * dx);
+//
+//                Set_cell_next_step_solution(i, j, total_solution);
+//            }
+//        }
+//    }*/
+//    /*for(auto &it:cell){
+//        for(auto &re:it){
+//            summ+=re.Get_next_step_solution();
+//        }
+//    }
+//    std::cout<<summ<<"\n";*/
+//    */
 
-                Set_cell_next_step_solution(i, j, total_solution);
-            }
-        }
-    }
-    /*for(auto &it:cell){
-        for(auto &re:it){
-            summ+=re.Get_solution();
-        }
-    }*/
-    //std::cout<<summ<<"\n";
+
+
+
+
+
+
 }
 
 // process of crystallization and dissolution
@@ -307,14 +540,23 @@ void Map::Crystallization_dissolution_check() {
             if (!cell[i][j].Get_state_color()) {
 
                 //std::uniform_real_distribution<double> distrib(0,cell[i][j].Get_dis_prob() + cell[i][j].Get_crys_prob());
-                std::uniform_real_distribution<double> distrib(0,
-                                                               1);
+                std::uniform_real_distribution<double> distrib(0, 1);
+/*
+                std::thread th([&](){
+                    cell[i][j].Set_crys_rate_prob();
+                }) ;
+                std:: thread th1([&](){
+                    cell[i][j].Set_dis_rate_prob();
+                });
+                th.join();
+                th1.join();*/
                 cell[i][j].Set_crys_rate_prob();
                 cell[i][j].Set_dis_rate_prob();
-
+                //std::cout<<cell[i][j].Get_crys_prob()<<"\n";
                 double prob = distrib(gen);
                 if (prob < cell[i][j].Get_dis_prob()) cell[i][j].Set_state(false);
-                if (prob >= cell[i][j].Get_dis_prob() && prob<=cell[i][j].Get_dis_prob()+cell[i][j].Get_dis_prob()) {
+                if (prob >= cell[i][j].Get_dis_prob() &&
+                    prob <= cell[i][j].Get_dis_prob() + cell[i][j].Get_dis_prob()) {
                     cell[i][j].Set_state(true);
                 }
             }
@@ -366,8 +608,8 @@ void Map::Crystallization_dissolution_check() {
 }
 
 void Map::Rhompus(int count) {
-    int i = Height / pow(2, cells_distance);
-    int j = Width / pow(2, cells_distance);
+    int i = Height / (2 * cells_distance);
+    int j = Width / (2 * cells_distance);
     //int count=0;
     double delta_r = sqrt(4 * diffusion_coef * dt * count) / dx;
     //std::cout<<delta_r<<'\n';
