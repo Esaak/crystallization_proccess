@@ -54,6 +54,7 @@ public:
     void Set_solution(double solution);
     void Set_next_step_solution( double next_step_solution);
     void Set_crys_rate_prob();
+    void Set_crys_dis_rate_prob();
     void Set_dis_rate_prob();
     bool Get_state() const ;
     std::pair<double, double> Get_coordinates() const ;

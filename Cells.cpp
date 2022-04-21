@@ -59,7 +59,28 @@ void Cells:: Set_dis_rate_prob(){
         //std::cout<<dis_prob<<"\n";
     }
 };
+void Cells:: Set_crys_dis_rate_prob(){
+    if(next_step_solution == max_density){
+        crys_rate= std::numeric_limits<double>::max();
+        crys_prob=1;
+    }
+    else {
+        crys_rate = basic_rate * (next_step_solution * (max_density - equilibrium_concentration)) /
+                    (equilibrium_concentration * (max_density - next_step_solution));
+        //std::cout<<crys_rate<<"\n";
+        crys_prob = 1 - exp(-crys_rate * dt * 1/ dx);
+    }
+    dis_rate = basic_rate * (equilibrium_concentration * (max_density - next_step_solution)) /
+               (next_step_solution * (max_density - equilibrium_concentration));
+    if(crys_prob==1){
+        dis_prob =0;
+    }
+    else{
+        dis_prob = 1 - exp(-dis_rate * dt * 1 / dx);
+        //std::cout<<dis_prob<<"\n";
+    }
 
+}
 bool Cells:: Get_state() const {
     return this->state;
 }

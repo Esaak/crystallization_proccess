@@ -38,8 +38,11 @@ public:
     Cells Get_cell_i(unsigned i, unsigned j) const;
     unsigned Get_number_of_Cells();
     void Thread_Differential_equation_iteration();
+    void Thread_Differential_equation_iteration1();
     void Thread_pass_even(std::size_t);
+    void Thread_pass_even1(std::size_t);
     void Thread_pass_uneven(std::size_t);
+    void Thread_pass_uneven1(std::size_t);
     static double  Get_max_density(double max_density) {
         return max_density;
     }

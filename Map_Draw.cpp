@@ -40,10 +40,11 @@ void Map_Draw::Display() {
         window.clear();
         //map.Rhompus_clean(count);
         //std::cout
-
         map.Thread_Differential_equation_iteration();
+        //map.Thread_Differential_equation_iteration1();
+        //map.Differential_equation_iteration();
         map.Crystallization_dissolution_check();
-        std::cout<<2;
+
         count++;
         if(count%100==0){
             auto end = std::chrono::system_clock::now();
