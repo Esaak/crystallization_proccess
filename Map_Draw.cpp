@@ -15,8 +15,6 @@ void Map_Draw::Display() {
     window.setFramerateLimit(30);
     window.setVerticalSyncEnabled(true);
     map.Set_cell_origin();
-    int count=0;
-    auto start = std::chrono::system_clock::now();
     while (window.isOpen()) {
         // handle events
         sf::Event event;
@@ -26,15 +24,7 @@ void Map_Draw::Display() {
         }
         window.clear();
         map.Thread_Differential_equation_iteration();
-        //map.Thread_Differential_equation_iteration1();
-        //map.Differential_equation_iteration();
         map.Crystallization_dissolution_check();
-        count++;
-        if(count%100==0){
-            auto end = std::chrono::system_clock::now();
-            std::chrono::duration<double> diff = end - start;
-            std::cout<<diff.count()<<"\n";
-        }
         //draw moving particles
         for (std::size_t i = 0; i < map.Get_Height() / Cells::cells_distance; i++) {
             for (std::size_t j = 0; j < map.Get_Width() / Cells::cells_distance; j++) {
