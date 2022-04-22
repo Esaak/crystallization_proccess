@@ -40,6 +40,7 @@ public:
     static double equilibrium_concentration;
     static double basic_rate;
     static double diffusion_coef;
+    static const double Solution_concentration;
     Cells();
     void Set_state_color(bool state_c);
     void Set_blue_color(bool state_b){

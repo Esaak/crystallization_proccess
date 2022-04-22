@@ -121,14 +121,14 @@ void Map::Set_cell_origin() {
     std::default_random_engine e(seed);
     std::random_device rd;
     std::mt19937 gen(seed);
-    std::normal_distribution<double> distrib{0.05 * max_density, sqrt(0.05 * max_density)};
+    std::normal_distribution<double> distrib{Solution_concentration * max_density, sqrt(Solution_concentration * max_density)};
     //std::uniform_real_distribution<double> distrib(0, max_density/4);
     for (unsigned i = 0; i < Height / cells_distance; i++) {
         for (unsigned j = 0; j < Width / cells_distance; j++) {
             cell[i][j].Set_coordinates(i, j);
             double rand_temp = distrib(gen);
             if (rand_temp < 0) rand_temp = 0;
-            if (rand_temp > 2 * 0.05 * max_density) rand_temp = 2 * 0.05 * max_density;
+            if (rand_temp > 2 * Solution_concentration * max_density) rand_temp = 2 * Solution_concentration * max_density;
             if (i == 0 || i == Height / cells_distance - 1 || j == 0 || j == Width / cells_distance - 1)
                 rand_temp = 0;
             //rand_temp<=0 ? std::cout<<rand_temp<<" ou \n": std::cout<<"";
@@ -247,6 +247,7 @@ void Map::Thread_Differential_equation_iteration1() {
 
 
 void Map::Thread_pass_uneven(std::size_t j) {
+
     unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
     std::mt19937 gen(seed);
     double total_solution = 0.0;
@@ -296,7 +297,7 @@ void Map::Thread_pass_even(std::size_t j){
         p=249;
     }
     for(std::size_t m=1; m<Height/cells_distance-1; m++) {
-        for (std::size_t n = j; n < j + p; n++) {
+        for (std::size_t n = j; n < (j + p); n++) {
             if (!cell[m][n].Get_state_color()) {
                 std::uniform_real_distribution<double> distrib(0, 1);
 

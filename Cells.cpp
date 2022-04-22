@@ -77,7 +77,6 @@ void Cells:: Set_crys_dis_rate_prob(){
     }
     else{
         dis_prob = 1 - exp(-dis_rate * dt * 1 / dx);
-        //std::cout<<dis_prob<<"\n";
     }
 
 }
