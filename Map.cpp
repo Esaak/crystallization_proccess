@@ -188,6 +188,7 @@ void Map::Thread_pass_even1(std::size_t j) {
 }
 
 void Map::Thread_pass_uneven1(std::size_t j) {
+    j = (j-1)*cells_distance;
     unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
     std::mt19937 gen(seed);
     double total_solution = 0.0;
@@ -247,7 +248,7 @@ void Map::Thread_Differential_equation_iteration1() {
 
 
 void Map::Thread_pass_uneven(std::size_t j) {
-
+    j=j/cells_distance- j%cells_distance;
     unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
     std::mt19937 gen(seed);
     double total_solution = 0.0;
@@ -291,10 +292,10 @@ void Map::Thread_pass_even(std::size_t j){
     double total_solution =0;
     std::size_t p=0;
     if(j==1){
-        p=248;
+        p=248/cells_distance;
     }
     else{
-        p=249;
+        p=249/cells_distance+249%cells_distance;
     }
     for(std::size_t m=1; m<Height/cells_distance-1; m++) {
         for (std::size_t n = j; n < (j + p); n++) {
@@ -334,9 +335,9 @@ void Map::Thread_pass_even(std::size_t j){
 }
 void Map::Thread_Differential_equation_iteration() {
     std::thread th1(&Map::Thread_pass_even, this, 1);
-    std::thread th2(&Map::Thread_pass_even, this, 250);
-    std::thread th3(&Map::Thread_pass_even, this, 500);
-    std::thread th4(&Map::Thread_pass_even, this, 750);
+    std::thread th2(&Map::Thread_pass_even, this, 250/cells_distance);
+    std::thread th3(&Map::Thread_pass_even, this, 500/cells_distance);
+    std::thread th4(&Map::Thread_pass_even, this, 750/cells_distance);
     th1.join();
     th2.join();
     th3.join();
