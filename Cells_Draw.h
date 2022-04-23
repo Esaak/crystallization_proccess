@@ -1,4 +1,4 @@
-//Класс который отвечает за  отрисовку кружочков, в зависимости от параметров кружочков
+//This class is responsible for drawing each cell based on its parameters
 
 #ifndef FIRST_ATTEMPT_POINTS_DRAW_H
 #define FIRST_ATTEMPT_POINTS_DRAW_H
@@ -10,7 +10,7 @@ class Cells_Draw {
 protected:
     sf::Color color_free = sf::Color(255, 0, 0, 200);
     sf::Color color_crystal = sf::Color(0, 255, 0, 255);
-    sf::Color color_rhombus = sf::Color(0,0,0, 255);
+    sf::Color color_rhombus = sf::Color(0, 0, 0, 255);
     sf::Vertex circle[];
 public:
 

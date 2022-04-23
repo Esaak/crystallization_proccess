@@ -1,4 +1,4 @@
-
+// This class is responsible for drawing the map and cells altogether
 #include <thread>
 #include <SFML/Graphics.hpp>
 #include <iostream>

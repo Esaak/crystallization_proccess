@@ -1,11 +1,7 @@
-//
-// Created by п on 24.03.2022.
-//
-
 #include "Map.h"
 #include <iomanip>
 /*########################################################################################*/
-/*#################################Constuctors and operators##############################*/
+//                              Constructors and operators
 /*########################################################################################*/
 //default constructor
 Map::Map() : Height(600), Width(800), number_of_Cells(1000) {
@@ -54,7 +50,7 @@ Map &Map::operator=(const Map &map) {
 }
 
 /*########################################################################################*/
-/*#################################Getters and Setters####################################*/
+/*                              Getters and setters                                       */
 /*########################################################################################*/
 
 unsigned Map::Get_Height() const {
@@ -111,7 +107,7 @@ unsigned Map::Get_number_of_Cells() {
 }
 
 /*########################################################################################*/
-/*########################################Math############################################*/
+/*                                     The block of calculations                          */
 /*########################################################################################*/
 
 // setting initial values
@@ -120,13 +116,15 @@ void Map::Set_cell_origin() {
     std::default_random_engine e(seed);
     std::random_device rd;
     std::mt19937 gen(seed);
-    std::normal_distribution<double> distrib{Solution_concentration * max_density, sqrt(Solution_concentration * max_density)};
+    std::normal_distribution<double> distrib{Solution_concentration * max_density,
+                                             sqrt(Solution_concentration * max_density)};
     for (unsigned i = 0; i < Height / cells_distance; i++) {
         for (unsigned j = 0; j < Width / cells_distance; j++) {
             cell[i][j].Set_coordinates(i, j);
             double rand_temp = distrib(gen);
             if (rand_temp < 0) rand_temp = 0;
-            if (rand_temp > 2 * Solution_concentration * max_density) rand_temp = 2 * Solution_concentration * max_density;
+            if (rand_temp > 2 * Solution_concentration * max_density)
+                rand_temp = 2 * Solution_concentration * max_density;
             if (i == 0 || i == Height / cells_distance - 1 || j == 0 || j == Width / cells_distance - 1)
                 rand_temp = 0;
             cell[i][j].Set_solution(rand_temp);
@@ -146,10 +144,8 @@ void Map::Set_cell_origin() {
 }
 
 
-
-
 void Map::Thread_pass_uneven(std::size_t j) {
-    j=j/cells_distance- j%cells_distance;
+    j = j / cells_distance - j % cells_distance;
     unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
     std::mt19937 gen(seed);
     double total_solution = 0.0;
@@ -185,24 +181,21 @@ void Map::Thread_pass_uneven(std::size_t j) {
 
 
 //solution of differential equation
-void Map::Thread_pass_even(std::size_t j){
+void Map::Thread_pass_even(std::size_t j) {
     unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
     std::mt19937 gen(seed);
-    double total_solution =0;
-    std::size_t p=0;
-    if(j==1){
-        p=248/cells_distance;
+    double total_solution = 0;
+    std::size_t p = 0;
+    if (j == 1) {
+        p = 248 / cells_distance;
+    } else {
+        p = 249 / cells_distance + 249 % cells_distance;
     }
-    else{
-        p=249/cells_distance+249%cells_distance;
-    }
-    for(std::size_t m=1; m<Height/cells_distance-1; m++) {
+    for (std::size_t m = 1; m < Height / cells_distance - 1; m++) {
         for (std::size_t n = j; n < (j + p); n++) {
             if (!cell[m][n].Get_state_color()) {
                 std::uniform_real_distribution<double> distrib(0, 1);
-
                 cell[m][n].Set_crys_dis_rate_prob();
-                //std::cout<<cell[i][j].Get_crys_prob()<<"\n";
                 double prob = distrib(gen);
                 if (prob < cell[m][n].Get_dis_prob()) cell[m][n].Set_state(false);
                 if (prob >= cell[m][n].Get_dis_prob() &&
@@ -219,12 +212,14 @@ void Map::Thread_pass_even(std::size_t j){
                                                                          (dx * dx);
                 total_solution += cell[m + 1][n].Get_state_color() ? 0 : Get_cell_next_step_solution(m + 1, n) *
                                                                          diffusion_coef * dt / (dx * dx);
-                total_solution += cell[m][n - 1].Get_state_color() ? 0 :n==j? Get_cell_next_step_solution(m,n-1)*diffusion_coef *
-                                                                                                                dt /
-                                                                                                                (dx * dx):Get_cell_solution(m, n - 1) *
+                total_solution += cell[m][n - 1].Get_state_color() ? 0 : n == j ?
+                                                                         Get_cell_next_step_solution(m, n - 1) *
                                                                          diffusion_coef *
                                                                          dt /
-                                                                         (dx * dx);
+                                                                         (dx * dx) : Get_cell_solution(m, n - 1) *
+                                                                                     diffusion_coef *
+                                                                                     dt /
+                                                                                     (dx * dx);
                 total_solution += cell[m][n + 1].Get_state_color() ? 0 : Get_cell_next_step_solution(m, n + 1) *
                                                                          diffusion_coef * dt / (dx * dx);
                 Set_cell_next_step_solution(m, n, total_solution);
@@ -232,23 +227,24 @@ void Map::Thread_pass_even(std::size_t j){
         }
     }
 }
-void Map::Thread_Differential_equation_iteration() {
+
+// parallelization on 4 cores, recommended one (if available)
+void Map::Thread_Differential_equation_iteration_4() {
     std::thread th1(&Map::Thread_pass_even, this, 1);
-    std::thread th2(&Map::Thread_pass_even, this, 250/cells_distance);
-    std::thread th3(&Map::Thread_pass_even, this, 500/cells_distance);
-    std::thread th4(&Map::Thread_pass_even, this, 750/cells_distance);
+    std::thread th2(&Map::Thread_pass_even, this, 250 / cells_distance);
+    std::thread th3(&Map::Thread_pass_even, this, 500 / cells_distance);
+    std::thread th4(&Map::Thread_pass_even, this, 750 / cells_distance);
     th1.join();
     th2.join();
     th3.join();
     th4.join();
-    std::thread th5(&Map::Thread_pass_uneven, this,249);
+    std::thread th5(&Map::Thread_pass_uneven, this, 249);
     std::thread th6(&Map::Thread_pass_uneven, this, 499);
-    std::thread th7 (&Map::Thread_pass_uneven, this, 749);
+    std::thread th7(&Map::Thread_pass_uneven, this, 749);
     th5.join();
     th6.join();
     th7.join();
 }
-
 
 
 void Map::Thread_pass_even1(std::size_t j) {
@@ -260,7 +256,6 @@ void Map::Thread_pass_even1(std::size_t j) {
             std::uniform_real_distribution<double> distrib(0, 1);
 
             cell[i][j].Set_crys_dis_rate_prob();
-            //std::cout<<cell[i][j].Get_crys_prob()<<"\n";
             double prob = distrib(gen);
             if (prob < cell[i][j].Get_dis_prob()) cell[i][j].Set_state(false);
             if (prob >= cell[i][j].Get_dis_prob() &&
@@ -288,7 +283,7 @@ void Map::Thread_pass_even1(std::size_t j) {
 }
 
 void Map::Thread_pass_uneven1(std::size_t j) {
-    j = (j-1)*cells_distance;
+    j = (j - 1) * cells_distance;
     unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
     std::mt19937 gen(seed);
     double total_solution = 0.0;
@@ -297,7 +292,6 @@ void Map::Thread_pass_uneven1(std::size_t j) {
             std::uniform_real_distribution<double> distrib(0, 1);
 
             cell[i][j].Set_crys_dis_rate_prob();
-            //std::cout<<cell[i][j].Get_crys_prob()<<"\n";
             double prob = distrib(gen);
             if (prob < cell[i][j].Get_dis_prob()) cell[i][j].Set_state(false);
             if (prob >= cell[i][j].Get_dis_prob() &&
@@ -324,31 +318,28 @@ void Map::Thread_pass_uneven1(std::size_t j) {
     }
 }
 
-void Map::Thread_Differential_equation_iteration1() {
-    for (int j = 2; j < Width/cells_distance; j += 2) {
-//        std::cout<<j<<" ";
+// parallelization on all cores, may not work properly, thus not recommended to use
+void Map::Thread_Differential_equation_iteration_all() {
+    for (int j = 2; j < Width / cells_distance; j += 2) {
         auto b_tedt = new std::thread(&Map::Thread_pass_even1, this, j);
-        cells_thread_even[j/2-1] = b_tedt;
+        cells_thread_even[j / 2 - 1] = b_tedt;
     }
-//    std::cout<<"\n";
-    for (auto &it:cells_thread_even) {
+    for (auto &it: cells_thread_even) {
         it->join();
         delete it;
     }
-    for(int j=1;j<Width/cells_distance-1; j+=2){
-        //std::cout<<j<<" ";
+    for (int j = 1; j < Width / cells_distance - 1; j += 2) {
         auto b_tedt = new std::thread(&Map::Thread_pass_uneven1, this, j);
-        cells_thread_uneven[j/2+1]= b_tedt;
+        cells_thread_uneven[j / 2 + 1] = b_tedt;
     }
-    for(auto& it:cells_thread_uneven){
+    for (auto &it: cells_thread_uneven) {
         it->join();
         delete it;
     }
 }
 
-
-
-void Map::Differential_equation_iteration() {
+// parallelization on 2 cores
+void Map::Thread_Differential_equation_iteration_2() {
     unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
     std::mt19937 gen(seed);
     double summ = 0;
@@ -359,7 +350,6 @@ void Map::Differential_equation_iteration() {
         std::pair<double, double> coordinates_temp;
         double total_solution = 0.0;
         for (int i = 1; i < Height / cells_distance - 1; i++) {
-            //std::cout << 1;
             for (int j = 1; j < Width / (2 * cells_distance) - 1; j++) {
                 if (!cell[i][j].Get_state_color()) {
                     std::uniform_real_distribution<double> distrib(0, 1);
@@ -378,20 +368,7 @@ void Map::Differential_equation_iteration() {
                     coordinates_temp.second = j;
                     Set_cell_solution(i, j, Get_cell_next_step_solution(i, j));
                     total_solution = Get_cell_solution(i, j) * (1 - 4 * diffusion_coef * dt / (dx * dx));
-                    // block with if in the absence of boundary conditions
-                    /*if (i - 1 >= 0) {
-                        total_solution += Get_cell_solution(i - 1, j) * diffusion_coef * dt / (dx * dx);
-                    }
-                    if (i + 1 < Height / 2) {
-                        total_solution += Get_cell_solution(i + 1, j) * diffusion_coef * dt / (dx * dx);
-                    }
 
-                    if (j - 1 >= 0) {
-                        total_solution += Get_cell_solution(i, j - 1) * diffusion_coef * dt / (dx * dx);
-                    }
-                    if (j + 1 < Width / 2) {
-                        total_solution += Get_cell_solution(i, j + 1) * diffusion_coef * dt / (dx * dx);
-                    }*/
                     total_solution += cell[i - 1][j].Get_state_color() ? 0 : Get_cell_solution(i - 1, j) *
                                                                              diffusion_coef *
                                                                              dt /
@@ -432,20 +409,7 @@ void Map::Differential_equation_iteration() {
                     coordinates_temp.second = j;
                     Set_cell_solution(i, j, Get_cell_next_step_solution(i, j));
                     total_solution = Get_cell_solution(i, j) * (1 - 4 * diffusion_coef * dt / (dx * dx));
-                    // block with if in the absence of boundary conditions
-                    /*if (i - 1 >= 0) {
-                        total_solution += Get_cell_solution(i - 1, j) * diffusion_coef * dt / (dx * dx);
-                    }
-                    if (i + 1 < Height / 2) {
-                        total_solution += Get_cell_solution(i + 1, j) * diffusion_coef * dt / (dx * dx);
-                    }
 
-                    if (j - 1 >= 0) {
-                        total_solution += Get_cell_solution(i, j - 1) * diffusion_coef * dt / (dx * dx);
-                    }
-                    if (j + 1 < Width / 2) {
-                        total_solution += Get_cell_solution(i, j + 1) * diffusion_coef * dt / (dx * dx);
-                    }*/
                     total_solution += cell[i - 1][j].Get_state_color() ? 0 : Get_cell_solution(i - 1, j) *
                                                                              diffusion_coef *
                                                                              dt /
@@ -500,7 +464,7 @@ void Map::Differential_equation_iteration() {
 
 // process of crystallization and dissolution
 void Map::Crystallization_process(int i, int j) {
-    //pass circle radius, increases by one
+    //pass circle radius(the group number), increases by one
     int k = 1;
     //the amount of substance needed for crystallization
     double needed_solution = max_density - cell[i][j].Get_next_step_solution();
@@ -512,7 +476,7 @@ void Map::Crystallization_process(int i, int j) {
     while (needed_solution > 0) {
 
         summary_group_solution = 0;
-        //calculation the amount of substance in cells of  this circle
+        //calculation the amount of substance in cells in this circle
         if (j - k > 0) {
             if (!cell[i][j - k].Get_state() && !cell[i][j - k].Get_state_color()) {
                 summary_group_solution += cell[i][j - k].Get_next_step_solution();
@@ -547,9 +511,8 @@ void Map::Crystallization_process(int i, int j) {
             cell[i][j].Set_next_step_solution(cell[i][j].Get_next_step_solution() + summary_group_solution);
             cell[i][j].Set_impurity(max_density - cell[i][j].Get_next_step_solution());
         }
-        // if there is enough substance in this circle, we subtract proportionally the amount,
-        //else we subtract all the amount in this circle
-        //the amount of substance in the cell
+        // if there is enough substance in this circle, we subtract the amount proportionally,
+        //otherwise we subtract all the substance from cells in this circle
         double current_solution;
         if (j - k > 0) {
             if (!cell[i][j - k].Get_state() && !cell[i][j - k].Get_state_color()) {
@@ -586,12 +549,12 @@ void Map::Crystallization_process(int i, int j) {
     }
 }
 
-//crystal one lab build
+//checking whether the cell crystallizes, dissolves or nothing happens to it
 void Map::Crystallization_dissolution_check() {
     int x, y;
-    //vector pointers on crystallized cells on this lab
+    //vector pointers on crystallized cells on this iteration
     std::vector<Cells *> b;
-    //check, are crystallized cells near cells, which crystallized in past lab
+    //checking, whether new crystallized cells(on current iteration) are near those cells, which crystallized on the previous iteration
     for (auto &it: cells_crystall) {
         y = it->Get_coordinates().second / cells_distance - 1;
         x = it->Get_coordinates().first / cells_distance;
@@ -626,14 +589,15 @@ void Map::Crystallization_dissolution_check() {
             Crystallization_process(x, y);
         }
     }
-    //push a cells which crystallized in this lab in the vector pointer crystallization
-    for (auto &q:b) {
+    //pushing cells, which crystallized on this iteration in the vector of pointers to crystallized cells
+    for (auto &q: b) {
         cells_crystall.push_back(q);
     }
     b.clear();
 }
 
-void Map::Rhompus(int count) {
+// traversing the cells
+void Map::Rhombus(int count) {
     int i = Height / (2 * cells_distance);
     int j = Width / (2 * cells_distance);
     //int count=0;
@@ -658,7 +622,7 @@ void Map::Rhompus(int count) {
     }
 }
 
-void Map::Rhompus_clean(int count) {
+void Map::Rhombus_clean(int count) {
     int i = Height / pow(cells_distance, 2);
     int j = Width / pow(cells_distance, 2);
     double delta_r = sqrt(4 * diffusion_coef * dt * count) / dx;
