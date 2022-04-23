@@ -1,8 +1,4 @@
-//
-// Created by п on 24.03.2022.
-//
-//Класс отвечающий за то что будет происходить с кружочками
-//Точнее за то, какие значения они будут принимать, хранить данные о каждом кружочке
+//This class is responsible for cells data(parameters) and their methods
 #ifndef FIRST_ATTEMPT_Cells_H
 #define FIRST_ATTEMPT_Cells_H
 
@@ -15,7 +11,8 @@
 #include <vector>
 #include <random>
 #include <chrono>
-
+#include <thread>
+#include <functional>
 
 class Cells {
 protected:
@@ -30,7 +27,7 @@ protected:
     double dis_prob; // dissolution probability
     double crys_rate; // crystallization rate
     double dis_rate; // dissolution rate
-    //double max_density;
+    bool blue_color;
 
 public:
     static const double dt; // 10 in -5 seconds
@@ -40,24 +37,54 @@ public:
     static double equilibrium_concentration;
     static double basic_rate;
     static double diffusion_coef;
+    static const double Solution_concentration;
+
     Cells();
+
     void Set_state_color(bool state_c);
-    void Set_coordinates(double x, double y) ;
+
+    void Set_blue_color(bool state_b) {
+        blue_color = state_b;
+    }
+
+    bool Get_blue_color() {
+        return blue_color;
+    }
+
+    void Set_coordinates(double x, double y);
+
     void Set_state(bool state);
+
     void Set_impurity(double impurity);
+
     void Set_solution(double solution);
-    void Set_next_step_solution( double next_step_solution);
+
+    void Set_next_step_solution(double next_step_solution);
+
     void Set_crys_rate_prob();
+
+    void Set_crys_dis_rate_prob();
+
     void Set_dis_rate_prob();
-    bool Get_state() const ;
-    std::pair<double, double> Get_coordinates() const ;
-    double Get_impurity() const ;
-    double  Get_next_step_solution() const;
-    double Get_solution() const ;
-    double Get_crys_prob() const ;
-    double Get_crys_rate() const ;
-    double Get_dis_prob() const ;
-    double Get_dis_rate() const ;
+
+    bool Get_state() const;
+
+    std::pair<double, double> Get_coordinates() const;
+
+    double Get_impurity() const;
+
+    double Get_next_step_solution() const;
+
+    double Get_solution() const;
+
+    double Get_crys_prob() const;
+
+    double Get_crys_rate() const;
+
+    double Get_dis_prob() const;
+
+    double Get_dis_rate() const;
+
     bool Get_state_color() const;
 };
 
